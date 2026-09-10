@@ -25,11 +25,14 @@
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:text="목표금액" android:textColor="#C9D7EA" android:textSize="16sp" />
         <EditText android:id="@+id/goal_input" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:textColor="#FFFFFF" android:textColorHint="#8FA4BF" android:hint="예: 800000" />
 
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="현재 결제주기 초기 사용액" android:textColor="#C9D7EA" android:textSize="16sp" />
-        <EditText android:id="@+id/base_input" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:textColor="#FFFFFF" android:textColorHint="#8FA4BF" android:hint="설치 전 사용액 보정" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="현재 소비주기 초기 사용액" android:textColor="#C9D7EA" android:textSize="16sp" />
+        <EditText android:id="@+id/base_input" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:textColor="#FFFFFF" android:textColorHint="#8FA4BF" android:hint="설치 전 27일~26일 사용액 보정" />
 
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="이번 주 초기 사용액" android:textColor="#C9D7EA" android:textSize="16sp" />
         <EditText android:id="@+id/week_base_input" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:textColor="#FFFFFF" android:textColorHint="#8FA4BF" android:hint="설치 전 이번 주 사용액 보정" />
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="오늘 초기 사용액" android:textColor="#C9D7EA" android:textSize="16sp" />
+        <EditText android:id="@+id/today_base_input" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:textColor="#FFFFFF" android:textColorHint="#8FA4BF" android:hint="설치 전 오늘 사용액 보정 (예: 14000)" />
 
         <Button android:id="@+id/save_button" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:text="저장" />
         <Button android:id="@+id/access_button" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="알림 접근 권한 설정" />
