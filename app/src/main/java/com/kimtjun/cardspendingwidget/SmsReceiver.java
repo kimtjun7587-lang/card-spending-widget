@@ -16,7 +16,6 @@ public class SmsReceiver extends BroadcastReceiver {
         if (intent == null || !"android.provider.Telephony.SMS_RECEIVED".equals(intent.getAction())) return;
         Bundle bundle = intent.getExtras();
         if (bundle == null) return;
-
         Object[] pdus = (Object[]) bundle.get("pdus");
         String format = bundle.getString("format");
         if (pdus == null || pdus.length == 0) return;
@@ -37,18 +36,12 @@ public class SmsReceiver extends BroadcastReceiver {
         Matcher m = AMOUNT.matcher(body.replace(" ", ""));
         if (!m.find()) return;
 
-        long amount;
         try {
-            amount = Long.parseLong(m.group(1).replace(",", ""));
-        } catch (Exception e) {
-            return;
-        }
-
-        String kind = m.group(2);
-        if (SpendingStore.isDuplicateEvent(context, amount, kind, body)) return;
-        if (kind.contains("취소")) amount = -amount;
-
-        SpendingStore.applyAmount(context, amount);
-        SpendingWidgetProvider.updateAll(context);
+            long amount = Long.parseLong(m.group(1).replace(",", ""));
+            String kind = m.group(2);
+            if (SpendingStore.recordTransaction(context, amount, kind, body)) {
+                SpendingWidgetProvider.updateAll(context);
+            }
+        } catch (Exception ignored) {}
     }
 }
