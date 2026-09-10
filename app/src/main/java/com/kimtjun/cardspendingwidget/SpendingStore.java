@@ -161,8 +161,6 @@ public class SpendingStore {
         prefs(c).edit()
                 .putLong(KEY_TODAY_BASE, Math.max(0L, v))
                 .putString(KEY_TODAY_BASE_DATE, today.toString())
-                // A manual today correction means daily carry starts from today at zero.
-                .putString(KEY_DAILY_ANCHOR_DATE, today.toString())
                 .apply();
     }
 
@@ -268,32 +266,24 @@ public class SpendingStore {
 
     private static BigDecimal weeklyNeedExact(Context c) {
         ensureCurrentPeriod(c);
-        long g = goal(c);
-        if (g <= 0L) return BigDecimal.ZERO;
-
         LocalDate today = LocalDate.now();
-        LocalDate cs = periodStart(today);
+        long remaining = Math.max(0L, goal(c) - total(c));
+        long spent = weekSpent(c);
+        if (remaining <= 0L) return BigDecimal.valueOf(spent);
+
         LocalDate ce = periodEnd(today);
-        LocalDate ws = currentWeekStart(today);
         LocalDate we = currentWeekEnd(today);
-        long cycleDays = ChronoUnit.DAYS.between(cs, ce) + 1L;
-        long currentDays = ChronoUnit.DAYS.between(ws, we) + 1L;
-        long priorDays = Math.max(0L, ChronoUnit.DAYS.between(cs, ws));
+        long remainingCycleDays = Math.max(1L, ChronoUnit.DAYS.between(today, ce) + 1L);
+        long remainingWeekDays = Math.max(1L, ChronoUnit.DAYS.between(today, we) + 1L);
 
-        BigDecimal currentBase = allocation(g, currentDays, cycleDays);
-        BigDecimal priorAllocated = allocation(g, priorDays, cycleDays);
-
-        long priorSpent = initialBeforeCurrentWeek(c, today);
-        if (ws.isAfter(cs)) priorSpent += sumBetween(c, cs, ws.minusDays(1));
-
-        BigDecimal carry = priorAllocated.subtract(BigDecimal.valueOf(priorSpent));
-        return currentBase.add(carry);
+        BigDecimal futureWeekAllowance = allocation(remaining, remainingWeekDays, remainingCycleDays);
+        return BigDecimal.valueOf(spent).add(futureWeekAllowance);
     }
 
     public static long weeklyPlan(Context c) {
         BigDecimal exact = weeklyNeedExact(c);
         if (exact.signum() <= 0) return 0L;
-        return exact.setScale(0, RoundingMode.HALF_UP).longValue();
+        return exact.setScale(0, RoundingMode.FLOOR).longValue();
     }
 
     public static long weekSpent(Context c) {
@@ -328,27 +318,13 @@ public class SpendingStore {
     public static long todayAvailable(Context c) {
         ensureCurrentPeriod(c);
         LocalDate today = LocalDate.now();
-        LocalDate ws = currentWeekStart(today);
+        long remaining = Math.max(0L, goal(c) - total(c));
+        if (remaining <= 0L) return 0L;
 
-        SharedPreferences p = prefs(c);
-        LocalDate anchor = parseDate(p.getString(KEY_DAILY_ANCHOR_DATE, today.toString()), today);
-        // Daily carry never crosses a Monday boundary or a 27th cycle boundary.
-        if (anchor.isBefore(ws) || anchor.isAfter(today)) anchor = ws;
-
-        long plan = weeklyPlan(c);
-        if (plan <= 0L) return 0L;
-
-        BigDecimal dailyBase = BigDecimal.valueOf(plan).divide(BigDecimal.valueOf(7L), 12, RoundingMode.HALF_UP);
-        long elapsed = ChronoUnit.DAYS.between(anchor, today) + 1L;
-        BigDecimal allocatedSinceAnchor = dailyBase.multiply(BigDecimal.valueOf(elapsed));
-
-        long spentSinceAnchor = sumBetween(c, anchor, today) + datedTodayBaseBetween(c, anchor, today);
-        BigDecimal raw = allocatedSinceAnchor.subtract(BigDecimal.valueOf(spentSinceAnchor));
-        if (raw.signum() <= 0) return 0L;
-
-        long floored = raw.setScale(0, RoundingMode.FLOOR).longValue();
-        // Never let the day-level allowance exceed what is left for the whole week.
-        return Math.min(floored, weeklyRemaining(c));
+        long remainingCycleDays = Math.max(1L, ChronoUnit.DAYS.between(today, periodEnd(today)) + 1L);
+        return BigDecimal.valueOf(remaining)
+                .divide(BigDecimal.valueOf(remainingCycleDays), 0, RoundingMode.FLOOR)
+                .longValue();
     }
 
     private static long eventTime(String body) {
