@@ -1,0 +1,40 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main", "android-implementation" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Build installable debug APK
+        run: gradle :app:assembleDebug
+
+      - name: Prepare download package
+        run: |
+          mkdir -p install-package
+          cp app/build/outputs/apk/debug/app-debug.apk install-package/card-spending-widget.apk
+          printf '설치: ZIP 압축을 풀고 card-spending-widget.apk를 Galaxy A16에서 누르세요.\n설치 후 앱에서 알림 접근 권한을 허용하고 목표금액/초기 사용액을 설정하세요.\n' > install-package/설치안내.txt
+
+      - name: Upload install ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: card-spending-widget-install
+          path: install-package/
+          if-no-files-found: error

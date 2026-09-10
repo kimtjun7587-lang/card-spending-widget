@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">카드 소비 위젯</string>
+    <string name="widget_description">롯데카드 소비 현황 위젯</string>
+</resources>

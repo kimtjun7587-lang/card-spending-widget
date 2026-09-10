@@ -1,0 +1,39 @@
+package com.kimtjun.cardspendingwidget;
+
+import android.app.Notification;
+import android.service.notification.NotificationListenerService;
+import android.service.notification.StatusBarNotification;
+import android.os.Bundle;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class CardNotificationListener extends NotificationListenerService {
+    private static final Pattern AMOUNT = Pattern.compile("([0-9,]+)원\\s*(승인취소|취소|승인)");
+
+    @Override
+    public void onNotificationPosted(StatusBarNotification sbn) {
+        Notification n = sbn.getNotification();
+        Bundle e = n.extras;
+        String title = String.valueOf(e.getCharSequence(Notification.EXTRA_TITLE, ""));
+        String text = String.valueOf(e.getCharSequence(Notification.EXTRA_TEXT, ""));
+        String big = String.valueOf(e.getCharSequence(Notification.EXTRA_BIG_TEXT, ""));
+        String body = title + "\n" + text + "\n" + big;
+
+        if (!(body.contains("롯데카드") || body.contains("디지로카") || body.contains("London"))) return;
+
+        Matcher m = AMOUNT.matcher(body.replace(" ", ""));
+        if (!m.find()) return;
+
+        long amount;
+        try { amount = Long.parseLong(m.group(1).replace(",", "")); }
+        catch (Exception ex) { return; }
+
+        String kind = m.group(2);
+        String fp = sbn.getKey() + "|" + amount + "|" + kind + "|" + body.hashCode();
+        if (SpendingStore.isDuplicate(this, fp)) return;
+
+        if (kind.contains("취소")) amount = -amount;
+        SpendingStore.applyAmount(this, amount);
+        SpendingWidgetProvider.updateAll(this);
+    }
+}
