@@ -30,7 +30,7 @@ jobs:
         run: |
           mkdir -p install-package
           cp app/build/outputs/apk/debug/app-debug.apk install-package/card-spending-widget.apk
-          printf '설치: ZIP 압축을 풀고 card-spending-widget.apk를 Galaxy A16에서 누르세요.\n권한: SMS 수신 허용 + 알림 접근 허용.\n설정: 목표금액, 현재 결제주기 초기 사용액, 필요 시 이번 주 초기 사용액을 입력하세요.\n' > install-package/설치안내.txt
+          printf '설치: ZIP 압축을 풀고 card-spending-widget.apk를 Galaxy A16에서 누르세요.\n권한: SMS 수신 허용 + 필요 시 알림 접근 허용.\n설정: 목표금액, 현재 소비주기 초기 사용액, 필요 시 이번 주/오늘 초기 사용액을 입력하세요.\n기준: 카드 소비주기는 27일~다음 달 26일이며, 26일 마감 후 27일 새 주기로 리셋됩니다.\n위젯: 기존 홈 위젯을 제거하고 카드 소비 위젯 4×2를 새로 추가하세요.\n' > install-package/설치안내.txt
 
       - name: Upload install ZIP
         uses: actions/upload-artifact@v4
