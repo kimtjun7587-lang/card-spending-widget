@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetProvider;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.view.View;
 import android.widget.RemoteViews;
 import java.text.NumberFormat;
 import java.time.LocalDate;
@@ -30,22 +31,28 @@ public class SpendingWidgetProvider extends AppWidgetProvider {
     }
 
     private static void updateOne(Context context, AppWidgetManager manager, int id) {
+        SpendingStore.ensureCurrentPeriod(context);
         RemoteViews rv = new RemoteViews(context.getPackageName(), R.layout.widget_spending);
         long total = SpendingStore.total(context);
         long goal = SpendingStore.goal(context);
         long remain = Math.max(0, goal - total);
         int percent = SpendingStore.usagePercent(context);
-        long weekly = SpendingStore.weeklyRecommended(context);
+        long weekly = SpendingStore.weeklyAvailable(context);
         LocalDate today = LocalDate.now();
         LocalDate end = SpendingStore.periodEnd(today);
-        long dday = Math.max(0, ChronoUnit.DAYS.between(today, end));
+        long dday = ChronoUnit.DAYS.between(today, end);
 
+        rv.setTextViewText(R.id.w_month, SpendingStore.periodMonthLabel(today));
+        rv.setTextViewText(R.id.w_period, SpendingStore.periodRangeLabel(today));
         rv.setTextViewText(R.id.w_amount, won(total));
-        rv.setTextViewText(R.id.w_goal, "목표 " + won(goal));
-        rv.setTextViewText(R.id.w_remain, "남은 " + won(remain));
-        rv.setTextViewText(R.id.w_week, "이번 주 권장 " + won(weekly));
-        rv.setTextViewText(R.id.w_percent, "사용률 " + percent + "%");
-        rv.setTextViewText(R.id.w_day, "결제일 10일 · D-" + dday);
+        rv.setTextViewText(R.id.w_goal, "목표  " + won(goal));
+        rv.setTextViewText(R.id.w_remain, "남은  " + won(remain));
+        rv.setTextViewText(R.id.w_week, "이번 주 사용 가능  " + won(weekly));
+        rv.setTextViewText(R.id.w_percent, "사용률  " + percent + "%");
+        rv.setTextViewText(R.id.w_day, dday == 0 ? "결제일 오늘" : "결제일 10일  ·  D-" + dday);
+
+        int progress = Math.max(0, Math.min(100, percent));
+        rv.setProgressBar(R.id.w_progress, 100, progress, false);
 
         Intent intent = new Intent(context, MainActivity.class);
         PendingIntent pi = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
