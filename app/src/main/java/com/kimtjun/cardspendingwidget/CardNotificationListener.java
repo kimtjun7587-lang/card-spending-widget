@@ -17,9 +17,11 @@ public class CardNotificationListener extends NotificationListenerService {
         String title = String.valueOf(e.getCharSequence(Notification.EXTRA_TITLE, ""));
         String text = String.valueOf(e.getCharSequence(Notification.EXTRA_TEXT, ""));
         String big = String.valueOf(e.getCharSequence(Notification.EXTRA_BIG_TEXT, ""));
-        String body = title + "\n" + text + "\n" + big;
+        String sub = String.valueOf(e.getCharSequence(Notification.EXTRA_SUB_TEXT, ""));
+        String body = title + "\n" + text + "\n" + big + "\n" + sub;
 
-        if (!(body.contains("롯데카드") || body.contains("디지로카") || body.contains("London"))) return;
+        boolean looksLikeLotte = body.contains("1588-8100") || body.contains("15888100") || body.contains("롯데카드") || body.contains("디지로카") || body.contains("London");
+        if (!looksLikeLotte) return;
 
         Matcher m = AMOUNT.matcher(body.replace(" ", ""));
         if (!m.find()) return;
@@ -29,10 +31,9 @@ public class CardNotificationListener extends NotificationListenerService {
         catch (Exception ex) { return; }
 
         String kind = m.group(2);
-        String fp = sbn.getKey() + "|" + amount + "|" + kind + "|" + body.hashCode();
-        if (SpendingStore.isDuplicate(this, fp)) return;
-
+        if (SpendingStore.isDuplicateEvent(this, amount, kind, body)) return;
         if (kind.contains("취소")) amount = -amount;
+
         SpendingStore.applyAmount(this, amount);
         SpendingWidgetProvider.updateAll(this);
     }
