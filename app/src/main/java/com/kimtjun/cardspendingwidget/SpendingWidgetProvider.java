@@ -15,28 +15,34 @@ import java.util.Locale;
 public class SpendingWidgetProvider extends AppWidgetProvider {
     @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
-        for (int id : ids) updateOne(context, manager, id);
+        for (int id : ids) render(context, manager, id, R.layout.widget_spending);
     }
 
     @Override
     public void onAppWidgetOptionsChanged(Context context, AppWidgetManager manager, int appWidgetId, android.os.Bundle newOptions) {
-        updateOne(context, manager, appWidgetId);
+        render(context, manager, appWidgetId, R.layout.widget_spending);
     }
 
     public static void updateAll(Context context) {
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
-        ComponentName name = new ComponentName(context, SpendingWidgetProvider.class);
-        int[] ids = manager.getAppWidgetIds(name);
-        for (int id : ids) updateOne(context, manager, id);
+        updateComponent(context, manager, SpendingWidgetProvider.class, R.layout.widget_spending);
+        updateComponent(context, manager, Widget4x1Provider.class, R.layout.widget_4x1);
+        updateComponent(context, manager, Widget2x1Provider.class, R.layout.widget_2x1);
+        updateComponent(context, manager, Widget4x3Provider.class, R.layout.widget_spending);
     }
 
-    private static String won(long v) {
+    private static void updateComponent(Context context, AppWidgetManager manager, Class<?> cls, int layoutId) {
+        int[] ids = manager.getAppWidgetIds(new ComponentName(context, cls));
+        for (int id : ids) render(context, manager, id, layoutId);
+    }
+
+    static String won(long v) {
         return NumberFormat.getNumberInstance(Locale.KOREA).format(v) + "원";
     }
 
-    private static void updateOne(Context context, AppWidgetManager manager, int id) {
+    static void render(Context context, AppWidgetManager manager, int id, int layoutId) {
         SpendingStore.ensureCurrentPeriod(context);
-        RemoteViews rv = new RemoteViews(context.getPackageName(), R.layout.widget_spending);
+        RemoteViews rv = new RemoteViews(context.getPackageName(), layoutId);
         long total = SpendingStore.total(context);
         long goal = SpendingStore.goal(context);
         long remain = Math.max(0L, goal - total);
