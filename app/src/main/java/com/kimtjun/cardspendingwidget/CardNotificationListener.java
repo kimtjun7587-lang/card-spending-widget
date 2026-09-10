@@ -1,9 +1,9 @@
 package com.kimtjun.cardspendingwidget;
 
 import android.app.Notification;
+import android.os.Bundle;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
-import android.os.Bundle;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -25,16 +25,12 @@ public class CardNotificationListener extends NotificationListenerService {
 
         Matcher m = AMOUNT.matcher(body.replace(" ", ""));
         if (!m.find()) return;
-
-        long amount;
-        try { amount = Long.parseLong(m.group(1).replace(",", "")); }
-        catch (Exception ex) { return; }
-
-        String kind = m.group(2);
-        if (SpendingStore.isDuplicateEvent(this, amount, kind, body)) return;
-        if (kind.contains("취소")) amount = -amount;
-
-        SpendingStore.applyAmount(this, amount);
-        SpendingWidgetProvider.updateAll(this);
+        try {
+            long amount = Long.parseLong(m.group(1).replace(",", ""));
+            String kind = m.group(2);
+            if (SpendingStore.recordTransaction(this, amount, kind, body)) {
+                SpendingWidgetProvider.updateAll(this);
+            }
+        } catch (Exception ignored) {}
     }
 }
