@@ -2,6 +2,8 @@ package com.kimtjun.cardspendingwidget;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.DayOfWeek;
@@ -21,64 +23,177 @@ public class SpendingStore {
     private static final String KEY_GOAL = "goal";
     private static final String KEY_BASE = "base";
     private static final String KEY_CYCLE = "cycle_key";
-    private static final String KEY_WEEK = "week_key";
     private static final String KEY_WEEK_BASE = "week_base";
+    private static final String KEY_WEEK_BASE_WEEK = "week_base_week_v5";
+    private static final String KEY_BASE_DATE = "base_date_v5";
+    private static final String KEY_TODAY_BASE = "today_base_v5";
+    private static final String KEY_TODAY_BASE_DATE = "today_base_date_v5";
+    private static final String KEY_DAILY_ANCHOR_DATE = "daily_anchor_date_v5";
     private static final String KEY_LEDGER = "ledger_v3";
     private static final String KEY_MIGRATED = "ledger_migrated_v3";
+    private static final String KEY_RULE_VERSION = "cycle_rule_version";
+    private static final int RULE_VERSION = 5;
     private static final Pattern DATE_TIME = Pattern.compile("(\\d{2})/(\\d{2})\\s+(\\d{2}):(\\d{2})");
 
-    public static SharedPreferences prefs(Context c) { return c.getSharedPreferences(PREF, Context.MODE_PRIVATE); }
+    public static SharedPreferences prefs(Context c) {
+        return c.getSharedPreferences(PREF, Context.MODE_PRIVATE);
+    }
 
-    private static String cycleKey(LocalDate today) { return periodStart(today) + "~" + periodEnd(today); }
-    private static String weekKey(LocalDate today) { return today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).toString(); }
+    private static String cycleKey(LocalDate today) {
+        return periodStart(today) + "~" + periodEnd(today);
+    }
+
+    private static String weekKey(LocalDate today) {
+        return today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).toString();
+    }
+
+    private static LocalDate parseDate(String value, LocalDate fallback) {
+        try { return LocalDate.parse(value); }
+        catch (Exception ignored) { return fallback; }
+    }
 
     public static void ensureCurrentPeriod(Context c) {
         SharedPreferences p = prefs(c);
+
         if (!p.getBoolean(KEY_MIGRATED, false)) {
             long legacyApproved = p.getLong("approved", 0L);
             long legacyWeek = p.getLong("week_spent", 0L);
-            p.edit().putLong(KEY_BASE, p.getLong(KEY_BASE, 0L) + legacyApproved)
-                    .putLong(KEY_WEEK_BASE, legacyWeek)
-                    .putLong("approved", 0L).putLong("week_spent", 0L)
-                    .putBoolean(KEY_MIGRATED, true).apply();
+            p.edit()
+                    .putLong(KEY_BASE, p.getLong(KEY_BASE, 0L) + legacyApproved)
+                    .putLong(KEY_WEEK_BASE, Math.max(p.getLong(KEY_WEEK_BASE, 0L), legacyWeek))
+                    .putLong("approved", 0L)
+                    .putLong("week_spent", 0L)
+                    .putBoolean(KEY_MIGRATED, true)
+                    .apply();
         }
 
         LocalDate today = LocalDate.now();
         String currentCycle = cycleKey(today);
-        String savedCycle = p.getString(KEY_CYCLE, "");
-        if (savedCycle.isEmpty()) {
-            p.edit().putString(KEY_CYCLE, currentCycle).putString(KEY_WEEK, weekKey(today)).apply();
-        } else if (!currentCycle.equals(savedCycle)) {
-            p.edit().putString(KEY_CYCLE, currentCycle).putString(KEY_WEEK, weekKey(today))
-                    .putLong(KEY_BASE, 0L).putLong(KEY_WEEK_BASE, 0L).apply();
+
+        // One-time migration from the old 11th~10th rule to the new 27th~26th rule.
+        // Keep the user's existing correction values instead of silently erasing them.
+        if (p.getInt(KEY_RULE_VERSION, 0) < RULE_VERSION) {
+            SharedPreferences.Editor e = p.edit()
+                    .putInt(KEY_RULE_VERSION, RULE_VERSION)
+                    .putString(KEY_CYCLE, currentCycle);
+            if (!p.contains(KEY_BASE_DATE)) e.putString(KEY_BASE_DATE, today.toString());
+            if (!p.contains(KEY_WEEK_BASE_WEEK)) e.putString(KEY_WEEK_BASE_WEEK, weekKey(today));
+            if (!p.contains(KEY_TODAY_BASE)) e.putLong(KEY_TODAY_BASE, 0L);
+            if (!p.contains(KEY_TODAY_BASE_DATE)) e.putString(KEY_TODAY_BASE_DATE, today.toString());
+            if (!p.contains(KEY_DAILY_ANCHOR_DATE)) e.putString(KEY_DAILY_ANCHOR_DATE, today.toString());
+            e.apply();
+            return;
         }
 
-        String currentWeek = weekKey(today);
-        if (!currentWeek.equals(p.getString(KEY_WEEK, ""))) {
-            p.edit().putString(KEY_WEEK, currentWeek).putLong(KEY_WEEK_BASE, 0L).apply();
+        String savedCycle = p.getString(KEY_CYCLE, "");
+        if (savedCycle == null || savedCycle.isEmpty()) {
+            p.edit()
+                    .putString(KEY_CYCLE, currentCycle)
+                    .putString(KEY_BASE_DATE, today.toString())
+                    .putString(KEY_WEEK_BASE_WEEK, weekKey(today))
+                    .putString(KEY_TODAY_BASE_DATE, today.toString())
+                    .putString(KEY_DAILY_ANCHOR_DATE, today.toString())
+                    .apply();
+        } else if (!currentCycle.equals(savedCycle)) {
+            // New 27th~26th spending cycle: no daily/weekly/monthly carryover crosses this boundary.
+            p.edit()
+                    .putString(KEY_CYCLE, currentCycle)
+                    .putLong(KEY_BASE, 0L)
+                    .putLong(KEY_WEEK_BASE, 0L)
+                    .putLong(KEY_TODAY_BASE, 0L)
+                    .putString(KEY_BASE_DATE, today.toString())
+                    .putString(KEY_WEEK_BASE_WEEK, weekKey(today))
+                    .putString(KEY_TODAY_BASE_DATE, today.toString())
+                    .putString(KEY_DAILY_ANCHOR_DATE, today.toString())
+                    .apply();
         }
     }
 
-    public static long goal(Context c) { ensureCurrentPeriod(c); return prefs(c).getLong(KEY_GOAL, 1000000L); }
-    public static void setGoal(Context c, long v) { ensureCurrentPeriod(c); prefs(c).edit().putLong(KEY_GOAL, Math.max(0, v)).apply(); }
-    public static long base(Context c) { ensureCurrentPeriod(c); return prefs(c).getLong(KEY_BASE, 0L); }
-    public static void setBase(Context c, long v) { ensureCurrentPeriod(c); prefs(c).edit().putLong(KEY_BASE, Math.max(0, v)).apply(); }
-    public static long weekBase(Context c) { ensureCurrentPeriod(c); return prefs(c).getLong(KEY_WEEK_BASE, 0L); }
-    public static void setWeekBase(Context c, long v) { ensureCurrentPeriod(c); prefs(c).edit().putLong(KEY_WEEK_BASE, Math.max(0, v)).apply(); }
+    public static long goal(Context c) {
+        ensureCurrentPeriod(c);
+        return prefs(c).getLong(KEY_GOAL, 1000000L);
+    }
+
+    public static void setGoal(Context c, long v) {
+        ensureCurrentPeriod(c);
+        prefs(c).edit().putLong(KEY_GOAL, Math.max(0L, v)).apply();
+    }
+
+    public static long base(Context c) {
+        ensureCurrentPeriod(c);
+        return prefs(c).getLong(KEY_BASE, 0L);
+    }
+
+    public static void setBase(Context c, long v) {
+        ensureCurrentPeriod(c);
+        prefs(c).edit()
+                .putLong(KEY_BASE, Math.max(0L, v))
+                .putString(KEY_BASE_DATE, LocalDate.now().toString())
+                .apply();
+    }
+
+    public static long weekBase(Context c) {
+        ensureCurrentPeriod(c);
+        SharedPreferences p = prefs(c);
+        return weekKey(LocalDate.now()).equals(p.getString(KEY_WEEK_BASE_WEEK, ""))
+                ? p.getLong(KEY_WEEK_BASE, 0L) : 0L;
+    }
+
+    public static void setWeekBase(Context c, long v) {
+        ensureCurrentPeriod(c);
+        LocalDate today = LocalDate.now();
+        prefs(c).edit()
+                .putLong(KEY_WEEK_BASE, Math.max(0L, v))
+                .putString(KEY_WEEK_BASE_WEEK, weekKey(today))
+                .apply();
+    }
+
+    public static long todayBase(Context c) {
+        ensureCurrentPeriod(c);
+        SharedPreferences p = prefs(c);
+        String date = p.getString(KEY_TODAY_BASE_DATE, "");
+        return LocalDate.now().toString().equals(date) ? p.getLong(KEY_TODAY_BASE, 0L) : 0L;
+    }
+
+    public static void setTodayBase(Context c, long v) {
+        ensureCurrentPeriod(c);
+        LocalDate today = LocalDate.now();
+        prefs(c).edit()
+                .putLong(KEY_TODAY_BASE, Math.max(0L, v))
+                .putString(KEY_TODAY_BASE_DATE, today.toString())
+                // A manual today correction means daily carry starts from today at zero.
+                .putString(KEY_DAILY_ANCHOR_DATE, today.toString())
+                .apply();
+    }
 
     public static LocalDate periodStart(LocalDate today) {
-        return today.getDayOfMonth() >= 11 ? today.withDayOfMonth(11) : today.minusMonths(1).withDayOfMonth(11);
+        return today.getDayOfMonth() >= 27
+                ? today.withDayOfMonth(27)
+                : today.minusMonths(1).withDayOfMonth(27);
     }
-    public static LocalDate periodEnd(LocalDate today) { return periodStart(today).plusMonths(1).minusDays(1); }
-    public static String periodMonthLabel(LocalDate today) { return periodEnd(today).getMonthValue() + "월 사용액"; }
+
+    public static LocalDate periodEnd(LocalDate today) {
+        return periodStart(today).plusMonths(1).minusDays(1);
+    }
+
+    public static String periodMonthLabel(LocalDate today) {
+        return periodEnd(today).getMonthValue() + "월 사용액";
+    }
+
     public static String periodRangeLabel(LocalDate today) {
         LocalDate s = periodStart(today), e = periodEnd(today);
         return s.getMonthValue() + "." + s.getDayOfMonth() + " ~ " + e.getMonthValue() + "." + e.getDayOfMonth();
     }
 
     private static class Entry {
-        final long at, amount; final String key;
-        Entry(long at, long amount, String key) { this.at = at; this.amount = amount; this.key = key; }
+        final long at;
+        final long amount;
+        final String key;
+        Entry(long at, long amount, String key) {
+            this.at = at;
+            this.amount = amount;
+            this.key = key;
+        }
     }
 
     private static List<Entry> entries(Context c) {
@@ -88,12 +203,15 @@ public class SpendingStore {
         for (String line : raw.split("\\n")) {
             String[] p = line.split("\\|", 3);
             if (p.length != 3) continue;
-            try { out.add(new Entry(Long.parseLong(p[0]), Long.parseLong(p[1]), p[2])); } catch (Exception ignored) {}
+            try {
+                out.add(new Entry(Long.parseLong(p[0]), Long.parseLong(p[1]), p[2]));
+            } catch (Exception ignored) {}
         }
         return out;
     }
 
     private static long sumBetween(Context c, LocalDate start, LocalDate end) {
+        if (end.isBefore(start)) return 0L;
         ZoneId zone = ZoneId.systemDefault();
         long sum = 0L;
         for (Entry e : entries(c)) {
@@ -105,24 +223,132 @@ public class SpendingStore {
 
     public static long total(Context c) {
         ensureCurrentPeriod(c);
-        LocalDate t = LocalDate.now();
-        return Math.max(0L, base(c) + sumBetween(c, periodStart(t), periodEnd(t)));
+        LocalDate today = LocalDate.now();
+        return Math.max(0L, base(c) + sumBetween(c, periodStart(today), periodEnd(today)));
+    }
+
+    private static LocalDate currentWeekStart(LocalDate today) {
+        LocalDate start = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate cycleStart = periodStart(today);
+        return start.isBefore(cycleStart) ? cycleStart : start;
+    }
+
+    private static LocalDate currentWeekEnd(LocalDate today) {
+        LocalDate end = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+        LocalDate cycleEnd = periodEnd(today);
+        return end.isAfter(cycleEnd) ? cycleEnd : end;
+    }
+
+    private static long currentWeekInitial(Context c, LocalDate today) {
+        SharedPreferences p = prefs(c);
+        long value = weekKey(today).equals(p.getString(KEY_WEEK_BASE_WEEK, ""))
+                ? p.getLong(KEY_WEEK_BASE, 0L) : 0L;
+        return Math.max(0L, value);
+    }
+
+    private static long initialBeforeCurrentWeek(Context c, LocalDate today) {
+        long b = base(c);
+        if (b <= 0L) return 0L;
+        SharedPreferences p = prefs(c);
+        LocalDate baseDate = parseDate(p.getString(KEY_BASE_DATE, today.toString()), today);
+        LocalDate ws = currentWeekStart(today);
+        LocalDate we = currentWeekEnd(today);
+
+        if (baseDate.isBefore(ws)) return b;
+        if (!baseDate.isAfter(we)) return Math.max(0L, b - currentWeekInitial(c, today));
+        return 0L;
+    }
+
+    private static BigDecimal allocation(long goal, long days, long cycleDays) {
+        if (goal <= 0L || days <= 0L || cycleDays <= 0L) return BigDecimal.ZERO;
+        return BigDecimal.valueOf(goal)
+                .multiply(BigDecimal.valueOf(days))
+                .divide(BigDecimal.valueOf(cycleDays), 12, RoundingMode.HALF_UP);
+    }
+
+    private static BigDecimal weeklyNeedExact(Context c) {
+        ensureCurrentPeriod(c);
+        long g = goal(c);
+        if (g <= 0L) return BigDecimal.ZERO;
+
+        LocalDate today = LocalDate.now();
+        LocalDate cs = periodStart(today);
+        LocalDate ce = periodEnd(today);
+        LocalDate ws = currentWeekStart(today);
+        LocalDate we = currentWeekEnd(today);
+        long cycleDays = ChronoUnit.DAYS.between(cs, ce) + 1L;
+        long currentDays = ChronoUnit.DAYS.between(ws, we) + 1L;
+        long priorDays = Math.max(0L, ChronoUnit.DAYS.between(cs, ws));
+
+        BigDecimal currentBase = allocation(g, currentDays, cycleDays);
+        BigDecimal priorAllocated = allocation(g, priorDays, cycleDays);
+
+        long priorSpent = initialBeforeCurrentWeek(c, today);
+        if (ws.isAfter(cs)) priorSpent += sumBetween(c, cs, ws.minusDays(1));
+
+        BigDecimal carry = priorAllocated.subtract(BigDecimal.valueOf(priorSpent));
+        return currentBase.add(carry);
+    }
+
+    public static long weeklyPlan(Context c) {
+        BigDecimal exact = weeklyNeedExact(c);
+        if (exact.signum() <= 0) return 0L;
+        return exact.setScale(0, RoundingMode.HALF_UP).longValue();
     }
 
     public static long weekSpent(Context c) {
         ensureCurrentPeriod(c);
-        LocalDate t = LocalDate.now();
-        LocalDate s = t.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-        LocalDate e = t.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
-        if (s.isBefore(periodStart(t))) s = periodStart(t);
-        if (e.isAfter(periodEnd(t))) e = periodEnd(t);
-        return Math.max(0L, weekBase(c) + sumBetween(c, s, e));
+        LocalDate today = LocalDate.now();
+        long initial = currentWeekInitial(c, today);
+        return Math.max(0L, initial + sumBetween(c, currentWeekStart(today), currentWeekEnd(today)));
+    }
+
+    public static long weeklyRemaining(Context c) {
+        return Math.max(0L, weeklyPlan(c) - weekSpent(c));
+    }
+
+    public static boolean weeklyOver(Context c) {
+        return weekSpent(c) > weeklyPlan(c);
+    }
+
+    private static long datedTodayBaseBetween(Context c, LocalDate start, LocalDate end) {
+        SharedPreferences p = prefs(c);
+        LocalDate fallback = LocalDate.now();
+        LocalDate d = parseDate(p.getString(KEY_TODAY_BASE_DATE, fallback.toString()), fallback);
+        if (d.isBefore(start) || d.isAfter(end)) return 0L;
+        return Math.max(0L, p.getLong(KEY_TODAY_BASE, 0L));
     }
 
     public static long todaySpent(Context c) {
         ensureCurrentPeriod(c);
-        LocalDate t = LocalDate.now();
-        return Math.max(0L, sumBetween(c, t, t));
+        LocalDate today = LocalDate.now();
+        return Math.max(0L, datedTodayBaseBetween(c, today, today) + sumBetween(c, today, today));
+    }
+
+    public static long todayAvailable(Context c) {
+        ensureCurrentPeriod(c);
+        LocalDate today = LocalDate.now();
+        LocalDate ws = currentWeekStart(today);
+
+        SharedPreferences p = prefs(c);
+        LocalDate anchor = parseDate(p.getString(KEY_DAILY_ANCHOR_DATE, today.toString()), today);
+        // Daily carry never crosses a Monday boundary or a 27th cycle boundary.
+        if (anchor.isBefore(ws) || anchor.isAfter(today)) anchor = ws;
+
+        long plan = weeklyPlan(c);
+        if (plan <= 0L) return 0L;
+
+        BigDecimal dailyBase = BigDecimal.valueOf(plan).divide(BigDecimal.valueOf(7L), 12, RoundingMode.HALF_UP);
+        long elapsed = ChronoUnit.DAYS.between(anchor, today) + 1L;
+        BigDecimal allocatedSinceAnchor = dailyBase.multiply(BigDecimal.valueOf(elapsed));
+
+        long spentSinceAnchor = sumBetween(c, anchor, today) + datedTodayBaseBetween(c, anchor, today);
+        BigDecimal raw = allocatedSinceAnchor.subtract(BigDecimal.valueOf(spentSinceAnchor));
+        if (raw.signum() <= 0) return 0L;
+
+        long floored = raw.setScale(0, RoundingMode.FLOOR).longValue();
+        // Never let the day-level allowance exceed what is left for the whole week.
+        return Math.min(floored, weeklyRemaining(c));
     }
 
     private static long eventTime(String body) {
@@ -137,7 +363,9 @@ public class SpendingStore {
             LocalDateTime candidate = LocalDateTime.of(now.getYear(), month, day, hour, minute);
             if (candidate.isAfter(now.plusDays(2))) candidate = candidate.minusYears(1);
             return candidate.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
-        } catch (Exception e) { return System.currentTimeMillis(); }
+        } catch (Exception e) {
+            return System.currentTimeMillis();
+        }
     }
 
     private static String hash(String s) {
@@ -146,7 +374,9 @@ public class SpendingStore {
             StringBuilder out = new StringBuilder();
             for (byte v : b) out.append(String.format("%02x", v));
             return out.toString();
-        } catch (Exception e) { return Integer.toHexString(s.hashCode()); }
+        } catch (Exception e) {
+            return Integer.toHexString(s.hashCode());
+        }
     }
 
     public static boolean recordTransaction(Context c, long amount, String kind, String body) {
@@ -157,56 +387,23 @@ public class SpendingStore {
         String key = hash(amount + "|" + kind + "|" + dateTime);
         List<Entry> all = entries(c);
         for (Entry e : all) if (e.key.equals(key)) return false;
+
         long signed = kind != null && kind.contains("취소") ? -Math.abs(amount) : Math.abs(amount);
         all.add(new Entry(at, signed, key));
         if (all.size() > 500) all = new ArrayList<>(all.subList(all.size() - 500, all.size()));
+
         StringBuilder raw = new StringBuilder();
         for (Entry e : all) raw.append(e.at).append('|').append(e.amount).append('|').append(e.key).append('\n');
         prefs(c).edit().putString(KEY_LEDGER, raw.toString()).apply();
         return true;
     }
 
-    public static long weeklyPlan(Context c) {
-        long g = goal(c); if (g <= 0) return 0L;
-        LocalDate t = LocalDate.now();
-        LocalDate cs = periodStart(t), ce = periodEnd(t);
-        long cycleDays = ChronoUnit.DAYS.between(cs, ce) + 1L;
-        LocalDate ws = t.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-        LocalDate we = t.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
-        if (ws.isBefore(cs)) ws = cs;
-        if (we.isAfter(ce)) we = ce;
-        long overlap = Math.max(1L, ChronoUnit.DAYS.between(ws, we) + 1L);
-        return Math.round(g * (overlap / (double) cycleDays));
-    }
-
-    public static long weeklyRemaining(Context c) { return Math.max(0L, weeklyPlan(c) - weekSpent(c)); }
-    public static boolean weeklyOver(Context c) { return weekSpent(c) > weeklyPlan(c); }
-
-    public static long remainingValidDaysInWeek(Context c) {
-        LocalDate t = LocalDate.now();
-        LocalDate end = t.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
-        LocalDate cycleEnd = periodEnd(t);
-        if (end.isAfter(cycleEnd)) end = cycleEnd;
-        return Math.max(1L, ChronoUnit.DAYS.between(t, end) + 1L);
-    }
-
-    public static long todayAvailable(Context c) {
-        long days = remainingValidDaysInWeek(c);
-        return days <= 0 ? 0L : weeklyRemaining(c) / days;
-    }
-
-    public static LocalDate nextPaymentDate(LocalDate today) {
-        if (today.getDayOfMonth() < 10) return today.withDayOfMonth(10);
-        if (today.getDayOfMonth() == 10) return today.plusMonths(1).withDayOfMonth(10);
-        return today.plusMonths(1).withDayOfMonth(10);
-    }
-
-    public static long daysUntilNextPayment(LocalDate today) {
-        return Math.max(0L, ChronoUnit.DAYS.between(today, nextPaymentDate(today)));
+    public static long daysUntilClose(LocalDate today) {
+        return Math.max(0L, ChronoUnit.DAYS.between(today, periodEnd(today)));
     }
 
     public static int usagePercent(Context c) {
         long g = goal(c);
-        return g <= 0 ? 0 : (int)Math.min(999, Math.round(total(c) * 100.0 / g));
+        return g <= 0L ? 0 : (int)Math.min(999L, Math.round(total(c) * 100.0 / g));
     }
 }
