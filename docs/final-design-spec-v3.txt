@@ -1,0 +1,9 @@
+FINAL DESIGN LOCK
+- Main widget: 4x2 navy London card style matching the user-approved mockup as closely as Android RemoteViews permits.
+- Exact labels: [자동월]월 사용액, 목표, 남은, 사용률, 이번 주 필요 소비 금액, 이번 주 남은 소비 금액, 결제일 10일 | D-N.
+- Billing cycle: 11th through next month 10th. End-month drives the month label.
+- Weekly budget = goal * overlap-days(current Mon-Sun, cycle) / cycle-days.
+- Weekly remaining = max(0, weekly budget - actual spend recorded in current week). Show over-budget state when exceeded.
+- 1588-8100 SMS is primary ingestion; notification listener is secondary; shared content/time-based dedup prevents double counting.
+- Persist individual events locally by timestamp and signed amount. New billing cycles calculate from events in-cycle and cycle-scoped base adjustments.
+- Provide 2x1, 4x1, 4x2, 4x3 widget entries; 4x2 is the flagship design.
