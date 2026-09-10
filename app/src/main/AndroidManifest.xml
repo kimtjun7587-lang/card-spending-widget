@@ -6,9 +6,7 @@
         android:label="카드 소비 위젯"
         android:theme="@style/AppTheme">
 
-        <activity
-            android:name=".MainActivity"
-            android:exported="true">
+        <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -25,24 +23,30 @@
             </intent-filter>
         </service>
 
-        <receiver
-            android:name=".SmsReceiver"
-            android:permission="android.permission.BROADCAST_SMS"
-            android:exported="true">
+        <receiver android:name=".SmsReceiver" android:permission="android.permission.BROADCAST_SMS" android:exported="true">
             <intent-filter android:priority="999">
                 <action android:name="android.provider.Telephony.SMS_RECEIVED" />
             </intent-filter>
         </receiver>
 
-        <receiver
-            android:name=".SpendingWidgetProvider"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/spending_widget_info" />
+        <receiver android:name=".SpendingWidgetProvider" android:label="카드 소비 위젯 4×2" android:exported="false">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/spending_widget_info" />
+        </receiver>
+
+        <receiver android:name=".Widget4x1Provider" android:label="카드 소비 위젯 4×1" android:exported="false">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/spending_widget_4x1_info" />
+        </receiver>
+
+        <receiver android:name=".Widget2x1Provider" android:label="카드 소비 위젯 2×1" android:exported="false">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/spending_widget_2x1_info" />
+        </receiver>
+
+        <receiver android:name=".Widget4x3Provider" android:label="카드 소비 위젯 4×3" android:exported="false">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/spending_widget_4x3_info" />
         </receiver>
     </application>
 </manifest>
