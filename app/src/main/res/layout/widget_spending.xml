@@ -7,83 +7,47 @@
     android:padding="16dp"
     android:background="@drawable/widget_bg">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="DIGI LOCA · London"
-            android:textColor="#DCE7F6"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-        <TextView
-            android:id="@+id/w_period"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="#9FB1C8"
-            android:textSize="10sp" />
-    </LinearLayout>
+    <FrameLayout android:layout_width="match_parent" android:layout_height="54dp">
+        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="DIGI\nLOCA" android:lineSpacingExtra="-2dp" android:textColor="#FFFFFF" android:textSize="15sp" android:textStyle="bold" />
+            <TextView android:layout_width="1dp" android:layout_height="32dp" android:layout_marginLeft="10dp" android:layout_marginRight="10dp" android:background="#55749A" android:text="" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="London" android:textColor="#D8E3F2" android:textSize="17sp" />
+        </LinearLayout>
+        <ImageView android:layout_width="190dp" android:layout_height="54dp" android:layout_gravity="right|top" android:alpha="0.65" android:src="@drawable/london_skyline" />
+        <TextView android:id="@+id/w_period" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="right|top" android:textColor="#B8C6DA" android:textSize="10sp" />
+    </FrameLayout>
 
-    <TextView
-        android:id="@+id/w_month"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:textColor="#C4D2E5"
-        android:textSize="11sp" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
-        <TextView
-            android:id="@+id/w_amount"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="0원"
-            android:textColor="#FFFFFF"
-            android:textSize="30sp"
-            android:textStyle="bold" />
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="end">
-            <TextView android:id="@+id/w_goal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold" />
-            <TextView android:id="@+id/w_remain" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.35" android:orientation="vertical">
+            <TextView android:id="@+id/w_month" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#CAD7E8" android:textSize="12sp" />
+            <TextView android:id="@+id/w_amount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="0원" android:textColor="#FFFFFF" android:textSize="31sp" android:textStyle="bold" />
+        </LinearLayout>
+        <TextView android:layout_width="1dp" android:layout_height="54dp" android:layout_marginLeft="8dp" android:layout_marginRight="12dp" android:background="#476487" android:text="" />
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+            <TextView android:id="@+id/w_goal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:textSize="13sp" android:textStyle="bold" />
+            <TextView android:id="@+id/w_remain" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:textColor="#FFFFFF" android:textSize="13sp" android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>
 
-    <ProgressBar
-        android:id="@+id/w_progress"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="6dp"
-        android:layout_marginTop="10dp"
-        android:max="100"
-        android:progress="0" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="8dp">
+        <ProgressBar android:id="@+id/w_progress" style="?android:attr/progressBarStyleHorizontal" android:layout_width="0dp" android:layout_height="6dp" android:layout_weight="1" android:max="100" android:progress="0" android:progressTint="#FF8294" android:progressBackgroundTint="#526A88" />
+        <TextView android:id="@+id/w_percent" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginLeft="12dp" android:textColor="#D0D9E6" android:textSize="11sp" />
+    </LinearLayout>
 
-    <TextView
-        android:id="@+id/w_week"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:textColor="#FF8E9B"
-        android:textSize="13sp"
-        android:textStyle="bold" />
+    <TextView android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="8dp" android:layout_marginBottom="8dp" android:background="#385472" android:text="" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="5dp">
-        <TextView android:id="@+id/w_percent" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textColor="#C9D7EA" android:textSize="11sp" />
-        <TextView android:id="@+id/w_day" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#C9D7EA" android:textSize="11sp" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.4" android:orientation="vertical">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="이번 주 필요 소비 금액" android:textColor="#E3EAF3" android:textSize="11sp" />
+                <TextView android:id="@+id/w_week_plan" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FF8294" android:textSize="14sp" android:textStyle="bold" />
+            </LinearLayout>
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:orientation="horizontal" android:gravity="center_vertical">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="이번 주 남은 소비 금액" android:textColor="#E3EAF3" android:textSize="11sp" />
+                <TextView android:id="@+id/w_week_left" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:textSize="14sp" android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+        <TextView android:layout_width="1dp" android:layout_height="48dp" android:layout_marginLeft="12dp" android:layout_marginRight="14dp" android:background="#476487" android:text="" />
+        <TextView android:id="@+id/w_day" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#D7E0EC" android:textSize="11sp" android:textStyle="bold" />
     </LinearLayout>
 </LinearLayout>

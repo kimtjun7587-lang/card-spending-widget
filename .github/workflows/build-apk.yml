@@ -2,7 +2,7 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ "main", "android-implementation" ]
+    branches: [ "main", "android-implementation", "final-locked-design" ]
   workflow_dispatch:
 
 jobs:
@@ -30,7 +30,7 @@ jobs:
         run: |
           mkdir -p install-package
           cp app/build/outputs/apk/debug/app-debug.apk install-package/card-spending-widget.apk
-          printf '설치: ZIP 압축을 풀고 card-spending-widget.apk를 Galaxy A16에서 누르세요.\n설치 후 앱에서 알림 접근 권한을 허용하고 목표금액/초기 사용액을 설정하세요.\n' > install-package/설치안내.txt
+          printf '설치: ZIP 압축을 풀고 card-spending-widget.apk를 Galaxy A16에서 누르세요.\n권한: SMS 수신 허용 + 알림 접근 허용.\n설정: 목표금액, 현재 결제주기 초기 사용액, 필요 시 이번 주 초기 사용액을 입력하세요.\n' > install-package/설치안내.txt
 
       - name: Upload install ZIP
         uses: actions/upload-artifact@v4

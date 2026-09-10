@@ -11,6 +11,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 import java.text.NumberFormat;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 
 public class MainActivity extends Activity {
@@ -18,6 +19,7 @@ public class MainActivity extends Activity {
     private TextView summary;
     private EditText goalInput;
     private EditText baseInput;
+    private EditText weekBaseInput;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,12 +28,14 @@ public class MainActivity extends Activity {
         summary = findViewById(R.id.summary);
         goalInput = findViewById(R.id.goal_input);
         baseInput = findViewById(R.id.base_input);
+        weekBaseInput = findViewById(R.id.week_base_input);
         Button save = findViewById(R.id.save_button);
         Button access = findViewById(R.id.access_button);
 
         save.setOnClickListener(v -> {
             try { SpendingStore.setGoal(this, Long.parseLong(goalInput.getText().toString().replace(",", ""))); } catch(Exception ignored) {}
             try { SpendingStore.setBase(this, Long.parseLong(baseInput.getText().toString().replace(",", ""))); } catch(Exception ignored) {}
+            try { SpendingStore.setWeekBase(this, Long.parseLong(weekBaseInput.getText().toString().replace(",", ""))); } catch(Exception ignored) {}
             SpendingWidgetProvider.updateAll(this);
             refresh();
         });
@@ -53,20 +57,25 @@ public class MainActivity extends Activity {
 
     private void refresh() {
         SpendingStore.ensureCurrentPeriod(this);
+        LocalDate today = LocalDate.now();
+        LocalDate end = SpendingStore.periodEnd(today);
         long total = SpendingStore.total(this);
         long goal = SpendingStore.goal(this);
-        long remain = Math.max(0, goal - total);
-        LocalDate today = LocalDate.now();
-        LocalDate start = SpendingStore.periodStart(today);
-        LocalDate end = SpendingStore.periodEnd(today);
-        summary.setText(SpendingStore.periodMonthLabel(today) + "  " + SpendingStore.periodRangeLabel(today) + "\n\n" +
+        long remain = Math.max(0L, goal - total);
+        long dday = Math.max(0L, ChronoUnit.DAYS.between(today, end));
+        String weeklyLeft = SpendingStore.weeklyOver(this) ? "0원 (이번 주 예산 초과)" : won(SpendingStore.weeklyRemaining(this));
+
+        summary.setText(
+                SpendingStore.periodMonthLabel(today) + "   " + SpendingStore.periodRangeLabel(today) + "\n\n" +
                 "사용액  " + won(total) + "\n" +
                 "목표  " + won(goal) + "\n" +
                 "남은 금액  " + won(remain) + "\n" +
-                "사용률  " + SpendingStore.usagePercent(this) + "%\n" +
-                "이번 주 사용 가능  " + won(SpendingStore.weeklyAvailable(this)) + "\n" +
-                (today.equals(end) ? "결제일 오늘" : "결제일 10일 · D-" + java.time.temporal.ChronoUnit.DAYS.between(today, end)));
+                "사용률  " + SpendingStore.usagePercent(this) + "%\n\n" +
+                "이번 주 필요 소비 금액  " + won(SpendingStore.weeklyPlan(this)) + "\n" +
+                "이번 주 남은 소비 금액  " + weeklyLeft + "\n" +
+                "결제일 10일 | D-" + dday);
         goalInput.setText(String.valueOf(goal));
         baseInput.setText(String.valueOf(SpendingStore.base(this)));
+        weekBaseInput.setText(String.valueOf(SpendingStore.weekBase(this)));
     }
 }
