@@ -2,8 +2,10 @@ package com.kimtjun.cardspendingwidget;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
 
 public class SpendingStore {
     private static final String PREF = "spending";
@@ -46,12 +48,23 @@ public class SpendingStore {
     }
 
     public static long weeklyRecommended(Context c) {
-        long remain = Math.max(0L, goal(c) - total(c));
+        long g = goal(c);
+        if (g <= 0) return 0L;
+
         LocalDate today = LocalDate.now();
+        LocalDate start = periodStart(today);
         LocalDate end = periodEnd(today);
-        long days = Math.max(1L, ChronoUnit.DAYS.between(today, end) + 1L);
-        double weeks = Math.max(1.0, days / 7.0);
-        return Math.round(remain / weeks);
+        long periodDays = ChronoUnit.DAYS.between(start, end) + 1L;
+
+        LocalDate weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate weekEnd = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+        if (weekStart.isBefore(start)) weekStart = start;
+        if (weekEnd.isAfter(end)) weekEnd = end;
+
+        long weekDays = Math.max(1L, ChronoUnit.DAYS.between(weekStart, weekEnd) + 1L);
+        long weeklyPlan = Math.round(g * (weekDays / (double) periodDays));
+        long remain = Math.max(0L, g - total(c));
+        return Math.min(weeklyPlan, remain);
     }
 
     public static int usagePercent(Context c) {
