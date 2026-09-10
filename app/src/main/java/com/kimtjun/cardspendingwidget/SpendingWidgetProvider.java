@@ -50,19 +50,19 @@ public class SpendingWidgetProvider extends AppWidgetProvider {
         long todaySpent = SpendingStore.todaySpent(context);
         int percent = SpendingStore.usagePercent(context);
         LocalDate today = LocalDate.now();
-        long daysLeft = SpendingStore.daysUntilNextPayment(today);
+        long daysLeft = SpendingStore.daysUntilClose(today);
 
         rv.setTextViewText(R.id.w_month, SpendingStore.periodMonthLabel(today));
         rv.setTextViewText(R.id.w_period, SpendingStore.periodRangeLabel(today));
         rv.setTextViewText(R.id.w_amount, won(total));
-        rv.setTextViewText(R.id.w_goal, "목표  " + won(goal));
-        rv.setTextViewText(R.id.w_remain, "남은  " + won(remain));
+        rv.setTextViewText(R.id.w_goal, "목표 금액  " + won(goal));
+        rv.setTextViewText(R.id.w_remain, "남은 금액  " + won(remain));
         rv.setTextViewText(R.id.w_week_plan, won(weekPlan));
         rv.setTextViewText(R.id.w_week_left, SpendingStore.weeklyOver(context) ? "0원 · 초과" : won(weekLeft));
         rv.setTextViewText(R.id.w_today_available, won(todayAvailable));
         rv.setTextViewText(R.id.w_today_spent, won(todaySpent));
         rv.setTextViewText(R.id.w_percent, "사용률  " + percent + "%");
-        rv.setTextViewText(R.id.w_day, "결제일 10일  |  " + daysLeft + "일 남음");
+        rv.setTextViewText(R.id.w_day, "마감일 26일  |  " + daysLeft + "일 남음");
         rv.setProgressBar(R.id.w_progress, 100, Math.max(0, Math.min(100, percent)), false);
 
         Intent intent = new Intent(context, MainActivity.class);
