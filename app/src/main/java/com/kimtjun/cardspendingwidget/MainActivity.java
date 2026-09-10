@@ -19,6 +19,7 @@ public class MainActivity extends Activity {
     private EditText goalInput;
     private EditText baseInput;
     private EditText weekBaseInput;
+    private EditText todayBaseInput;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,6 +29,7 @@ public class MainActivity extends Activity {
         goalInput = findViewById(R.id.goal_input);
         baseInput = findViewById(R.id.base_input);
         weekBaseInput = findViewById(R.id.week_base_input);
+        todayBaseInput = findViewById(R.id.today_base_input);
         Button save = findViewById(R.id.save_button);
         Button access = findViewById(R.id.access_button);
 
@@ -35,6 +37,7 @@ public class MainActivity extends Activity {
             try { SpendingStore.setGoal(this, Long.parseLong(goalInput.getText().toString().replace(",", ""))); } catch(Exception ignored) {}
             try { SpendingStore.setBase(this, Long.parseLong(baseInput.getText().toString().replace(",", ""))); } catch(Exception ignored) {}
             try { SpendingStore.setWeekBase(this, Long.parseLong(weekBaseInput.getText().toString().replace(",", ""))); } catch(Exception ignored) {}
+            try { SpendingStore.setTodayBase(this, Long.parseLong(todayBaseInput.getText().toString().replace(",", ""))); } catch(Exception ignored) {}
             SpendingWidgetProvider.updateAll(this);
             refresh();
         });
@@ -65,16 +68,17 @@ public class MainActivity extends Activity {
         summary.setText(
                 SpendingStore.periodMonthLabel(today) + "   " + SpendingStore.periodRangeLabel(today) + "\n\n" +
                 "사용액  " + won(total) + "\n" +
-                "목표  " + won(goal) + "\n" +
+                "목표 금액  " + won(goal) + "\n" +
                 "남은 금액  " + won(remain) + "\n" +
                 "사용률  " + SpendingStore.usagePercent(this) + "%\n\n" +
                 "이번 주 필요 소비 금액  " + won(SpendingStore.weeklyPlan(this)) + "\n" +
                 "이번 주 남은 소비 금액  " + weeklyLeft + "\n" +
                 "오늘 사용 가능 소비 금액  " + won(SpendingStore.todayAvailable(this)) + "\n" +
                 "오늘 소비한 금액  " + won(SpendingStore.todaySpent(this)) + "\n" +
-                "결제일 10일 | " + SpendingStore.daysUntilNextPayment(today) + "일 남음");
+                "마감일 26일 | " + SpendingStore.daysUntilClose(today) + "일 남음");
         goalInput.setText(String.valueOf(goal));
         baseInput.setText(String.valueOf(SpendingStore.base(this)));
         weekBaseInput.setText(String.valueOf(SpendingStore.weekBase(this)));
+        todayBaseInput.setText(String.valueOf(SpendingStore.todayBase(this)));
     }
 }
