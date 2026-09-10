@@ -11,7 +11,6 @@ import android.widget.EditText;
 import android.widget.TextView;
 import java.text.NumberFormat;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 
 public class MainActivity extends Activity {
@@ -58,11 +57,9 @@ public class MainActivity extends Activity {
     private void refresh() {
         SpendingStore.ensureCurrentPeriod(this);
         LocalDate today = LocalDate.now();
-        LocalDate end = SpendingStore.periodEnd(today);
         long total = SpendingStore.total(this);
         long goal = SpendingStore.goal(this);
         long remain = Math.max(0L, goal - total);
-        long dday = Math.max(0L, ChronoUnit.DAYS.between(today, end));
         String weeklyLeft = SpendingStore.weeklyOver(this) ? "0원 (이번 주 예산 초과)" : won(SpendingStore.weeklyRemaining(this));
 
         summary.setText(
@@ -73,7 +70,9 @@ public class MainActivity extends Activity {
                 "사용률  " + SpendingStore.usagePercent(this) + "%\n\n" +
                 "이번 주 필요 소비 금액  " + won(SpendingStore.weeklyPlan(this)) + "\n" +
                 "이번 주 남은 소비 금액  " + weeklyLeft + "\n" +
-                "결제일 10일 | D-" + dday);
+                "오늘 사용 가능 소비 금액  " + won(SpendingStore.todayAvailable(this)) + "\n" +
+                "오늘 소비한 금액  " + won(SpendingStore.todaySpent(this)) + "\n" +
+                "결제일 10일 | " + SpendingStore.daysUntilNextPayment(today) + "일 남음");
         goalInput.setText(String.valueOf(goal));
         baseInput.setText(String.valueOf(SpendingStore.base(this)));
         weekBaseInput.setText(String.valueOf(SpendingStore.weekBase(this)));
