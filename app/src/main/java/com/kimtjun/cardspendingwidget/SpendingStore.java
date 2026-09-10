@@ -318,13 +318,16 @@ public class SpendingStore {
     public static long todayAvailable(Context c) {
         ensureCurrentPeriod(c);
         LocalDate today = LocalDate.now();
-        long remaining = Math.max(0L, goal(c) - total(c));
-        if (remaining <= 0L) return 0L;
+        long spentToday = todaySpent(c);
+        long spentBeforeToday = Math.max(0L, total(c) - spentToday);
+        long startRemaining = Math.max(0L, goal(c) - spentBeforeToday);
+        if (startRemaining <= 0L) return 0L;
 
         long remainingCycleDays = Math.max(1L, ChronoUnit.DAYS.between(today, periodEnd(today)) + 1L);
-        return BigDecimal.valueOf(remaining)
+        long todayBudget = BigDecimal.valueOf(startRemaining)
                 .divide(BigDecimal.valueOf(remainingCycleDays), 0, RoundingMode.FLOOR)
                 .longValue();
+        return Math.max(0L, todayBudget - spentToday);
     }
 
     private static long eventTime(String body) {
