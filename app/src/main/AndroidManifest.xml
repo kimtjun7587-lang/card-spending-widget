@@ -43,10 +43,5 @@
             <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/spending_widget_2x1_info" />
         </receiver>
-
-        <receiver android:name=".Widget4x3Provider" android:label="카드 소비 위젯 4×3" android:exported="false">
-            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
-            <meta-data android:name="android.appwidget.provider" android:resource="@xml/spending_widget_4x3_info" />
-        </receiver>
     </application>
 </manifest>
