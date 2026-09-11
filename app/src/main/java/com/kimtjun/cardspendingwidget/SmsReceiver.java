@@ -26,14 +26,25 @@ public class SmsReceiver extends BroadcastReceiver {
                 if (message.getMessageBody() != null) bodyBuilder.append(message.getMessageBody());
             }
 
-            if (!CardMessageParser.isLotteSender(sender)) {
+            String body = bodyBuilder.toString();
+            boolean lotteSender = CardMessageParser.isLotteSender(sender);
+            boolean lotteBody = CardMessageParser.looksLikeLotteNotification(body);
+            if (!lotteSender && !lotteBody) {
+                IngestionDiagnostics.recordSms(
+                        context,
+                        CardMessageParser.normalizeSender(sender),
+                        "SMS 수신, 롯데카드 거래로 판별되지 않음",
+                        null);
                 return;
             }
 
-            String body = bodyBuilder.toString();
             CardMessageParser.Parsed parsed = CardMessageParser.parse(body);
             if (parsed == null) {
-                IngestionDiagnostics.recordSms(context, CardMessageParser.normalizeSender(sender), "1588-8100 수신, 승인/취소 금액 인식 실패", null);
+                IngestionDiagnostics.recordSms(
+                        context,
+                        CardMessageParser.normalizeSender(sender),
+                        "롯데카드 문자 수신, 승인/취소 금액 인식 실패",
+                        null);
                 return;
             }
 
