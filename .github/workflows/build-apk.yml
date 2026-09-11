@@ -2,7 +2,7 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ "main", "android-implementation", "final-locked-design", "audit-fix-v1.6" ]
+    branches: [ "main", "android-implementation", "final-locked-design" ]
   workflow_dispatch:
 
 jobs:
