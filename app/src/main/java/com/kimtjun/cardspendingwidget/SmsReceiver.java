@@ -1,47 +1,20 @@
 package com.kimtjun.cardspendingwidget;
-
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.os.Bundle;
+import android.content.*;
+import android.provider.Telephony;
 import android.telephony.SmsMessage;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 public class SmsReceiver extends BroadcastReceiver {
-    private static final Pattern AMOUNT = Pattern.compile("([0-9,]+)원\\s*(승인취소|취소|승인)");
-
-    @Override
-    public void onReceive(Context context, Intent intent) {
-        if (intent == null || !"android.provider.Telephony.SMS_RECEIVED".equals(intent.getAction())) return;
-        Bundle bundle = intent.getExtras();
-        if (bundle == null) return;
-        Object[] pdus = (Object[]) bundle.get("pdus");
-        String format = bundle.getString("format");
-        if (pdus == null || pdus.length == 0) return;
-
-        StringBuilder bodyBuilder = new StringBuilder();
-        String sender = "";
-        for (Object pdu : pdus) {
-            SmsMessage msg = SmsMessage.createFromPdu((byte[]) pdu, format);
-            if (msg == null) continue;
-            if (sender.isEmpty()) sender = msg.getOriginatingAddress();
-            bodyBuilder.append(msg.getMessageBody());
-        }
-
-        String normalizedSender = sender == null ? "" : sender.replaceAll("[^0-9]", "");
-        if (!normalizedSender.endsWith("15888100")) return;
-
-        String body = bodyBuilder.toString();
-        Matcher m = AMOUNT.matcher(body.replace(" ", ""));
-        if (!m.find()) return;
-
-        try {
-            long amount = Long.parseLong(m.group(1).replace(",", ""));
-            String kind = m.group(2);
-            if (SpendingStore.recordTransaction(context, amount, kind, body)) {
-                SpendingWidgetProvider.updateAll(context);
-            }
-        } catch (Exception ignored) {}
+    @Override public void onReceive(Context context,Intent intent){
+        if(!Telephony.Sms.Intents.SMS_RECEIVED_ACTION.equals(intent.getAction()))return;
+        SmsMessage[] messages=Telephony.Sms.Intents.getMessagesFromIntent(intent);
+        if(messages==null||messages.length==0)return;
+        String sender=messages[0].getOriginatingAddress();
+        if(!LotteSmsParser.senderMatches(sender))return;
+        StringBuilder body=new StringBuilder();
+        for(SmsMessage sms:messages){if(!LotteSmsParser.senderMatches(sms.getOriginatingAddress()))return;body.append(sms.getMessageBody()==null?"":sms.getMessageBody());}
+        Object[] objects=(Object[])intent.getSerializableExtra("pdus");if(objects==null||objects.length==0)return;
+        byte[][] pdus=new byte[objects.length][];for(int i=0;i<objects.length;i++){if(!(objects[i] instanceof byte[]))return;pdus[i]=(byte[])objects[i];}
+        String key=SmsIdentity.key("15888100",intent.getStringExtra("format"),pdus);
+        TrialStore.get(context).receive(key,body.toString(),messages[0].getTimestampMillis());
+        SpendingWidgetProvider.updateAll(context);
     }
 }

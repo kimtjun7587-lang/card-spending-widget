@@ -1,73 +1,32 @@
 package com.kimtjun.cardspendingwidget;
-
+import android.Manifest;
 import android.app.PendingIntent;
-import android.appwidget.AppWidgetManager;
-import android.appwidget.AppWidgetProvider;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
+import android.appwidget.*;
+import android.content.*;
+import android.content.pm.PackageManager;
 import android.widget.RemoteViews;
-import java.text.NumberFormat;
-import java.time.LocalDate;
-import java.util.Locale;
-
+import java.time.*;
+import java.time.format.DateTimeFormatter;
 public class SpendingWidgetProvider extends AppWidgetProvider {
-    @Override
-    public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
-        for (int id : ids) render(context, manager, id, R.layout.widget_spending);
-    }
-
-    @Override
-    public void onAppWidgetOptionsChanged(Context context, AppWidgetManager manager, int appWidgetId, android.os.Bundle newOptions) {
-        render(context, manager, appWidgetId, R.layout.widget_spending);
-    }
-
-    public static void updateAll(Context context) {
-        AppWidgetManager manager = AppWidgetManager.getInstance(context);
-        updateComponent(context, manager, SpendingWidgetProvider.class, R.layout.widget_spending);
-        updateComponent(context, manager, Widget4x1Provider.class, R.layout.widget_4x1);
-        updateComponent(context, manager, Widget2x1Provider.class, R.layout.widget_2x1);
-    }
-
-    private static void updateComponent(Context context, AppWidgetManager manager, Class<?> cls, int layoutId) {
-        int[] ids = manager.getAppWidgetIds(new ComponentName(context, cls));
-        for (int id : ids) render(context, manager, id, layoutId);
-    }
-
-    static String won(long v) {
-        return NumberFormat.getNumberInstance(Locale.KOREA).format(v) + "원";
-    }
-
-    static void render(Context context, AppWidgetManager manager, int id, int layoutId) {
-        SpendingStore.ensureCurrentPeriod(context);
-        RemoteViews rv = new RemoteViews(context.getPackageName(), layoutId);
-        long total = SpendingStore.total(context);
-        long goal = SpendingStore.goal(context);
-        long remain = Math.max(0L, goal - total);
-        long weekPlan = SpendingStore.weeklyPlan(context);
-        long weekLeft = SpendingStore.weeklyRemaining(context);
-        long todayAvailable = SpendingStore.todayAvailable(context);
-        long todaySpent = SpendingStore.todaySpent(context);
-        int percent = SpendingStore.usagePercent(context);
-        LocalDate today = LocalDate.now();
-        long daysLeft = SpendingStore.daysUntilClose(today);
-
-        rv.setTextViewText(R.id.w_month, SpendingStore.periodMonthLabel(today));
-        rv.setTextViewText(R.id.w_period, SpendingStore.periodRangeLabel(today));
-        rv.setTextViewText(R.id.w_amount, won(total));
-        rv.setTextViewText(R.id.w_goal, "목표 금액  " + won(goal));
-        rv.setTextViewText(R.id.w_remain, "남은 금액  " + won(remain));
-        rv.setTextViewText(R.id.w_week_plan, won(weekPlan));
-        rv.setTextViewText(R.id.w_week_left, SpendingStore.weeklyOver(context) ? "0원 · 초과" : won(weekLeft));
-        rv.setTextViewText(R.id.w_today_available, won(todayAvailable));
-        rv.setTextViewText(R.id.w_today_spent, won(todaySpent));
-        rv.setTextViewText(R.id.w_percent, "사용률  " + percent + "%");
-        rv.setTextViewText(R.id.w_day, "마감일 26일  |  " + daysLeft + "일 남음");
-        rv.setProgressBar(R.id.w_progress, 100, Math.max(0, Math.min(100, percent)), false);
-
-        Intent intent = new Intent(context, MainActivity.class);
-        PendingIntent pi = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-        rv.setOnClickPendingIntent(R.id.widget_root, pi);
-        manager.updateAppWidget(id, rv);
+    private static final String REFRESH="com.kimtjun.cardspendingwidget.trial.REFRESH";
+    public static void updateAll(Context c){AppWidgetManager m=AppWidgetManager.getInstance(c);for(int id:m.getAppWidgetIds(new ComponentName(c,SpendingWidgetProvider.class)))render(c,m,id);}
+    @Override public void onUpdate(Context c,AppWidgetManager m,int[] ids){for(int id:ids)render(c,m,id);}
+    @Override public void onReceive(Context c,Intent i){super.onReceive(c,i);if(REFRESH.equals(i.getAction()))updateAll(c);}
+    public static void render(Context c,AppWidgetManager m,int id){
+        RemoteViews v=new RemoteViews(c.getPackageName(),R.layout.widget_spending);
+        PendingIntent open=PendingIntent.getActivity(c,0,new Intent(c,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+        v.setOnClickPendingIntent(R.id.widget_root,open);
+        PendingIntent refresh=PendingIntent.getBroadcast(c,1,new Intent(c,SpendingWidgetProvider.class).setAction(REFRESH),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+        v.setOnClickPendingIntent(R.id.widget_refresh,refresh);
+        TrialStore store=TrialStore.get(c);BudgetEngine.Snapshot s=store.snapshot();
+        if(s==null){v.setTextViewText(R.id.widget_amount,"설정 시작하기");v.setTextViewText(R.id.widget_details,"눌러서 예산과 시작일을 설정하세요");v.setTextViewText(R.id.widget_status,"기존 앱과 별도로 저장됩니다");}
+        else{
+            v.setTextViewText(R.id.widget_amount,MainActivity.money(s.todayAvailable));
+            v.setTextViewText(R.id.widget_details,"오늘 순지출 "+MainActivity.money(s.todaySpent)+"   ·   "+s.days+"일 남음\n주기 잔액 "+MainActivity.money(s.remaining)+"\n이번 주 남음 "+MainActivity.money(s.weekAvailable)+" / 배정 "+MainActivity.money(s.weekBudget));
+            boolean ready=store.config().consent&&c.checkSelfPermission(Manifest.permission.RECEIVE_SMS)==PackageManager.PERMISSION_GRANTED;
+            String status=!ready?"자동 수집 꺼짐 · 앱에서 권한 확인":store.pendingCount()>0?"확인할 문자 "+store.pendingCount()+"건 · 앱에서 확인":"거래 반영 "+store.lastApplied();
+            v.setTextViewText(R.id.widget_status,status+"\n화면 갱신 "+LocalDateTime.now().format(DateTimeFormatter.ofPattern("MM.dd HH:mm")));
+        }
+        m.updateAppWidget(id,v);
     }
 }

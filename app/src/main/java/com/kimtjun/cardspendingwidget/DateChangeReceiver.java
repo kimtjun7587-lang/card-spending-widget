@@ -1,16 +1,5 @@
 package com.kimtjun.cardspendingwidget;
-
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-
+import android.content.*;
 public class DateChangeReceiver extends BroadcastReceiver {
-    @Override
-    public void onReceive(Context context, Intent intent) {
-        if (intent == null) return;
-        String action = intent.getAction();
-        if (Intent.ACTION_DATE_CHANGED.equals(action) || Intent.ACTION_TIMEZONE_CHANGED.equals(action)) {
-            SpendingWidgetProvider.updateAll(context);
-        }
-    }
+ public void onReceive(Context c,Intent i){String a=i.getAction();if(Intent.ACTION_DATE_CHANGED.equals(a)||Intent.ACTION_TIME_CHANGED.equals(a)||Intent.ACTION_TIMEZONE_CHANGED.equals(a)||Intent.ACTION_BOOT_COMPLETED.equals(a)||Intent.ACTION_MY_PACKAGE_REPLACED.equals(a))SpendingWidgetProvider.updateAll(c);}
 }

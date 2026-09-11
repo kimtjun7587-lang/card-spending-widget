@@ -13,3 +13,4 @@
     </LinearLayout>
     <TextView android:id="@+id/w_period" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" /><TextView android:id="@+id/w_goal" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" /><TextView android:id="@+id/w_remain" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" /><TextView android:id="@+id/w_week_plan" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" /><TextView android:id="@+id/w_percent" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" /><ProgressBar android:id="@+id/w_progress" style="?android:attr/progressBarStyleHorizontal" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
 </LinearLayout>
+

@@ -1,4 +1,1 @@
-<resources>
-    <string name="app_name">카드 소비 위젯</string>
-    <string name="widget_description">롯데카드 소비 현황 위젯</string>
-</resources>
+<resources><string name="app_name">하루여유 시험판</string><string name="widget_description">오늘 쓸 수 있는 돈 · 기존 앱과 별도 설치되는 무료 시험판</string></resources>

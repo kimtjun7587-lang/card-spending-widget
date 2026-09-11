@@ -1,46 +1,75 @@
-name: Build Android APK
-
+name: Isolated free trial APK and tests
 on:
   push:
-    branches: [ "main", "android-implementation", "final-locked-design" ]
+    branches: ["trial/spendable-beta-20260911"]
   workflow_dispatch:
-
+permissions:
+  contents: read
 jobs:
-  build:
+  trial:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Java
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
-      - name: Restore stable Android debug keystore
-        uses: actions/cache@v4
+      - uses: actions/cache@v4
         with:
           path: ~/.android/debug.keystore
-          key: card-spending-widget-debug-keystore-v1
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+          key: spendable-trial-debug-keystore-v1
+      - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
-
-      - name: Build installable debug APK
-        run: gradle :app:assembleDebug
-
-      - name: Prepare download package
+      - name: Test pure calculation and SMS logic
         run: |
-          mkdir -p install-package
-          cp app/build/outputs/apk/debug/app-debug.apk install-package/card-spending-widget.apk
-          printf '설치: ZIP 압축을 풀고 card-spending-widget.apk를 Galaxy A16에서 누르세요.\n권한: SMS 수신 허용 + 필요 시 알림 접근 허용.\n설정: 목표금액, 현재 소비주기 초기 사용액, 필요 시 이번 주/오늘 초기 사용액을 입력하세요.\n기준: 카드 소비주기는 27일~다음 달 26일이며, 26일 마감 후 27일 새 주기로 리셋됩니다.\n위젯: 기존 홈 위젯을 제거하고 카드 소비 위젯 4×2를 새로 추가하세요.\n' > install-package/설치안내.txt
-
-      - name: Upload install ZIP
-        uses: actions/upload-artifact@v4
+          mkdir -p core-classes
+          javac -d core-classes app/src/main/java/com/kimtjun/cardspendingwidget/{BudgetEngine,LotteSmsParser,SmsIdentity}.java app/src/test/java/com/kimtjun/cardspendingwidget/CoreChecks.java
+          java -cp core-classes com.kimtjun.cardspendingwidget.CoreChecks
+          gradle :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
+      - name: Build original snapshot only for separate-install verification
+        run: |
+          git worktree add --detach ../original-preservation-fixture 0d230d9fd21f3bf15ec9336fbb0ca57a1ced375e
+          gradle -p ../original-preservation-fixture :app:assembleDebug
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Android 35 emulator integration and coexistence tests
+        uses: reactivecircus/android-emulator-runner@v2
         with:
-          name: card-spending-widget-install
+          api-level: 35
+          arch: x86_64
+          profile: pixel_4
+          disable-animations: true
+          script: bash scripts/emulator-check.sh
+      - name: Prepare trial APK and installation guide
+        if: always()
+        run: |
+          mkdir -p install-package verification
+          if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
+            cp app/build/outputs/apk/debug/app-debug.apk install-package/haruyeoyu-trial-0.1.apk
+            cp docs/TRIAL_GUIDE_KO.md install-package/INSTALL_KO.md
+            sha256sum install-package/haruyeoyu-trial-0.1.apk > install-package/SHA256SUMS.txt
+            "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging install-package/haruyeoyu-trial-0.1.apk > verification/apk-badging.txt
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs install-package/haruyeoyu-trial-0.1.apk > verification/apk-signature.txt
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: haruyeoyu-trial-install
           path: install-package/
           if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trial-verification
+          path: |
+            app/build/reports/
+            app/build/outputs/androidTest-results/
+            verification/
+          if-no-files-found: warn

@@ -6,3 +6,4 @@
     <TextView android:id="@+id/w_day" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#B8C6DA" android:textSize="8sp" />
     <TextView android:id="@+id/w_period" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" /><TextView android:id="@+id/w_goal" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" /><TextView android:id="@+id/w_remain" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" /><TextView android:id="@+id/w_week_plan" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" /><TextView android:id="@+id/w_percent" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" /><ProgressBar android:id="@+id/w_progress" style="?android:attr/progressBarStyleHorizontal" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
 </LinearLayout>
+

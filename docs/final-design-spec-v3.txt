@@ -7,3 +7,4 @@ FINAL DESIGN LOCK
 - 1588-8100 SMS is primary ingestion; notification listener is secondary; shared content/time-based dedup prevents double counting.
 - Persist individual events locally by timestamp and signed amount. New billing cycles calculate from events in-cycle and cycle-scoped base adjustments.
 - Provide 2x1, 4x1, 4x2, 4x3 widget entries; 4x2 is the flagship design.
+
