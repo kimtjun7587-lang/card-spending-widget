@@ -53,6 +53,20 @@ final class CardMessageParser {
         return matcher.find() ? matcher.group(1) : Long.toString(fallbackMillis / 60000L);
     }
 
+    static String dedupMaterial(String body, long amount, String kind, long fallbackMillis) {
+        String normalized = normalizedBody(body);
+        Matcher amountMatcher = AMOUNT.matcher(normalized.replace(" ", ""));
+        String window = normalized;
+        if (amountMatcher.find()) {
+            String compact = normalized.replace(" ", "");
+            int compactStart = amountMatcher.start();
+            int start = Math.max(0, compactStart - 48);
+            int end = Math.min(compact.length(), amountMatcher.end() + 120);
+            window = compact.substring(start, end);
+        }
+        return amount + "|" + kind + "|" + dateTimeToken(body, fallbackMillis) + "|" + window;
+    }
+
     static String normalizedBody(String body) {
         if (body == null) return "";
         return body.replaceAll("\\s+", " ").trim();
