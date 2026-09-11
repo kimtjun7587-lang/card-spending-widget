@@ -3,45 +3,49 @@ package com.kimtjun.cardspendingwidget;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Bundle;
+import android.provider.Telephony;
 import android.telephony.SmsMessage;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class SmsReceiver extends BroadcastReceiver {
-    private static final Pattern AMOUNT = Pattern.compile("([0-9,]+)원\\s*(승인취소|취소|승인)");
-
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (intent == null || !"android.provider.Telephony.SMS_RECEIVED".equals(intent.getAction())) return;
-        Bundle bundle = intent.getExtras();
-        if (bundle == null) return;
-        Object[] pdus = (Object[]) bundle.get("pdus");
-        String format = bundle.getString("format");
-        if (pdus == null || pdus.length == 0) return;
-
-        StringBuilder bodyBuilder = new StringBuilder();
-        String sender = "";
-        for (Object pdu : pdus) {
-            SmsMessage msg = SmsMessage.createFromPdu((byte[]) pdu, format);
-            if (msg == null) continue;
-            if (sender.isEmpty()) sender = msg.getOriginatingAddress();
-            bodyBuilder.append(msg.getMessageBody());
-        }
-
-        String normalizedSender = sender == null ? "" : sender.replaceAll("[^0-9]", "");
-        if (!normalizedSender.endsWith("15888100")) return;
-
-        String body = bodyBuilder.toString();
-        Matcher m = AMOUNT.matcher(body.replace(" ", ""));
-        if (!m.find()) return;
+        if (intent == null || !Telephony.Sms.Intents.SMS_RECEIVED_ACTION.equals(intent.getAction())) return;
 
         try {
-            long amount = Long.parseLong(m.group(1).replace(",", ""));
-            String kind = m.group(2);
-            if (SpendingStore.recordTransaction(context, amount, kind, body)) {
-                SpendingWidgetProvider.updateAll(context);
+            SmsMessage[] messages = Telephony.Sms.Intents.getMessagesFromIntent(intent);
+            if (messages == null || messages.length == 0) {
+                IngestionDiagnostics.recordSms(context, "", "SMS 이벤트 수신, 메시지 해석 실패", null);
+                return;
             }
-        } catch (Exception ignored) {}
+
+            String sender = "";
+            StringBuilder bodyBuilder = new StringBuilder();
+            for (SmsMessage message : messages) {
+                if (message == null) continue;
+                if (sender.isEmpty()) sender = message.getOriginatingAddress();
+                if (message.getMessageBody() != null) bodyBuilder.append(message.getMessageBody());
+            }
+
+            if (!CardMessageParser.isLotteSender(sender)) {
+                return;
+            }
+
+            String body = bodyBuilder.toString();
+            CardMessageParser.Parsed parsed = CardMessageParser.parse(body);
+            if (parsed == null) {
+                IngestionDiagnostics.recordSms(context, CardMessageParser.normalizeSender(sender), "1588-8100 수신, 승인/취소 금액 인식 실패", null);
+                return;
+            }
+
+            boolean stored = SpendingStore.recordTransaction(context, parsed.amount, parsed.kind, body);
+            IngestionDiagnostics.recordSms(
+                    context,
+                    CardMessageParser.normalizeSender(sender),
+                    stored ? "저장 성공" : "중복 거래로 무시",
+                    parsed.amount);
+            if (stored) SpendingWidgetProvider.updateAll(context);
+        } catch (Exception e) {
+            IngestionDiagnostics.recordSms(context, "", "수신 처리 오류: " + e.getClass().getSimpleName(), null);
+        }
     }
 }
