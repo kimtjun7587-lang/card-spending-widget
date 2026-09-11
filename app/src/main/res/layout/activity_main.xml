@@ -25,17 +25,27 @@
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:text="목표금액" android:textColor="#C9D7EA" android:textSize="16sp" />
         <EditText android:id="@+id/goal_input" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:textColor="#FFFFFF" android:textColorHint="#8FA4BF" android:hint="예: 800000" />
 
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="현재 소비주기 초기 사용액" android:textColor="#C9D7EA" android:textSize="16sp" />
-        <EditText android:id="@+id/base_input" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:textColor="#FFFFFF" android:textColorHint="#8FA4BF" android:hint="설치 전 27일~26일 사용액 보정" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="현재 소비주기 사용액 보정" android:textColor="#C9D7EA" android:textSize="16sp" />
+        <EditText android:id="@+id/base_input" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:textColor="#FFFFFF" android:textColorHint="#8FA4BF" android:hint="현재 27일~26일 총 사용액" />
 
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="이번 주 초기 사용액" android:textColor="#C9D7EA" android:textSize="16sp" />
-        <EditText android:id="@+id/week_base_input" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:textColor="#FFFFFF" android:textColorHint="#8FA4BF" android:hint="설치 전 이번 주 사용액 보정" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="이번 주 사용액 보정" android:textColor="#C9D7EA" android:textSize="16sp" />
+        <EditText android:id="@+id/week_base_input" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:textColor="#FFFFFF" android:textColorHint="#8FA4BF" android:hint="현재 이번 주 총 사용액" />
 
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="오늘 초기 사용액" android:textColor="#C9D7EA" android:textSize="16sp" />
-        <EditText android:id="@+id/today_base_input" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:textColor="#FFFFFF" android:textColorHint="#8FA4BF" android:hint="설치 전 오늘 사용액 보정 (예: 14000)" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="오늘 사용액 보정" android:textColor="#C9D7EA" android:textSize="16sp" />
+        <EditText android:id="@+id/today_base_input" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:textColor="#FFFFFF" android:textColorHint="#8FA4BF" android:hint="현재 오늘 총 사용액" />
 
         <Button android:id="@+id/save_button" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:text="저장" />
         <Button android:id="@+id/access_button" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="알림 접근 권한 설정" />
+
+        <TextView
+            android:id="@+id/diagnostics"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="#132239"
+            android:padding="12dp"
+            android:textColor="#C9D7EA"
+            android:textSize="12sp" />
 
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="1588-8100 승인/취소 문자를 자동 반영합니다. 카드번호 전체, CVC, 비밀번호, OTP는 사용하거나 저장하지 않습니다." android:textColor="#9FB0C6" android:textSize="13sp" />
     </LinearLayout>
