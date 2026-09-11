@@ -35,6 +35,15 @@ public class CardMessageParserTest {
     }
 
     @Test
+    public void latestApprovalWinsWhenNotificationContainsHistory() {
+        String body = "롯데카드\n편의점 4,500원 승인 09/11 20:10 누적 532,900원\n카페 8,500원 승인 09/11 21:44 누적 541,400원";
+        CardMessageParser.Parsed parsed = CardMessageParser.parseLast(body);
+        assertNotNull(parsed);
+        assertEquals(8500L, parsed.amount);
+        assertEquals("승인", parsed.kind);
+    }
+
+    @Test
     public void differentTransactionBodiesProduceDifferentDedupMaterial() {
         String one = "편의점 4,500원 승인 09/11 21:44 누적 537,400원";
         String two = "편의점 4,500원 승인 09/11 21:44 누적 541,900원";
