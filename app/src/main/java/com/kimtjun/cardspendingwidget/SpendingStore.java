@@ -70,8 +70,6 @@ public class SpendingStore {
         LocalDate today = LocalDate.now();
         String currentCycle = cycleKey(today);
 
-        // One-time migration from the old 11th~10th rule to the new 27th~26th rule.
-        // Keep the user's existing correction values instead of silently erasing them.
         if (p.getInt(KEY_RULE_VERSION, 0) < RULE_VERSION) {
             SharedPreferences.Editor e = p.edit()
                     .putInt(KEY_RULE_VERSION, RULE_VERSION)
@@ -95,7 +93,6 @@ public class SpendingStore {
                     .putString(KEY_DAILY_ANCHOR_DATE, today.toString())
                     .apply();
         } else if (!currentCycle.equals(savedCycle)) {
-            // New 27th~26th spending cycle: no daily/weekly/monthly carryover crosses this boundary.
             p.edit()
                     .putString(KEY_CYCLE, currentCycle)
                     .putLong(KEY_BASE, 0L)
@@ -124,11 +121,14 @@ public class SpendingStore {
         return prefs(c).getLong(KEY_BASE, 0L);
     }
 
-    public static void setBase(Context c, long v) {
+    public static void setBase(Context c, long desiredCycleTotal) {
         ensureCurrentPeriod(c);
+        LocalDate today = LocalDate.now();
+        long automatic = sumBetween(c, periodStart(today), periodEnd(today));
+        long correction = Math.max(0L, desiredCycleTotal) - automatic;
         prefs(c).edit()
-                .putLong(KEY_BASE, Math.max(0L, v))
-                .putString(KEY_BASE_DATE, LocalDate.now().toString())
+                .putLong(KEY_BASE, correction)
+                .putString(KEY_BASE_DATE, today.toString())
                 .apply();
     }
 
@@ -139,11 +139,13 @@ public class SpendingStore {
                 ? p.getLong(KEY_WEEK_BASE, 0L) : 0L;
     }
 
-    public static void setWeekBase(Context c, long v) {
+    public static void setWeekBase(Context c, long desiredWeekTotal) {
         ensureCurrentPeriod(c);
         LocalDate today = LocalDate.now();
+        long automatic = sumBetween(c, currentWeekStart(today), currentWeekEnd(today));
+        long correction = Math.max(0L, desiredWeekTotal) - automatic;
         prefs(c).edit()
-                .putLong(KEY_WEEK_BASE, Math.max(0L, v))
+                .putLong(KEY_WEEK_BASE, correction)
                 .putString(KEY_WEEK_BASE_WEEK, weekKey(today))
                 .apply();
     }
@@ -155,11 +157,13 @@ public class SpendingStore {
         return LocalDate.now().toString().equals(date) ? p.getLong(KEY_TODAY_BASE, 0L) : 0L;
     }
 
-    public static void setTodayBase(Context c, long v) {
+    public static void setTodayBase(Context c, long desiredTodayTotal) {
         ensureCurrentPeriod(c);
         LocalDate today = LocalDate.now();
+        long automatic = sumBetween(c, today, today);
+        long correction = Math.max(0L, desiredTodayTotal) - automatic;
         prefs(c).edit()
-                .putLong(KEY_TODAY_BASE, Math.max(0L, v))
+                .putLong(KEY_TODAY_BASE, correction)
                 .putString(KEY_TODAY_BASE_DATE, today.toString())
                 .apply();
     }
@@ -187,6 +191,7 @@ public class SpendingStore {
         final long at;
         final long amount;
         final String key;
+
         Entry(long at, long amount, String key) {
             this.at = at;
             this.amount = amount;
@@ -239,22 +244,8 @@ public class SpendingStore {
 
     private static long currentWeekInitial(Context c, LocalDate today) {
         SharedPreferences p = prefs(c);
-        long value = weekKey(today).equals(p.getString(KEY_WEEK_BASE_WEEK, ""))
+        return weekKey(today).equals(p.getString(KEY_WEEK_BASE_WEEK, ""))
                 ? p.getLong(KEY_WEEK_BASE, 0L) : 0L;
-        return Math.max(0L, value);
-    }
-
-    private static long initialBeforeCurrentWeek(Context c, LocalDate today) {
-        long b = base(c);
-        if (b <= 0L) return 0L;
-        SharedPreferences p = prefs(c);
-        LocalDate baseDate = parseDate(p.getString(KEY_BASE_DATE, today.toString()), today);
-        LocalDate ws = currentWeekStart(today);
-        LocalDate we = currentWeekEnd(today);
-
-        if (baseDate.isBefore(ws)) return b;
-        if (!baseDate.isAfter(we)) return Math.max(0L, b - currentWeekInitial(c, today));
-        return 0L;
     }
 
     private static BigDecimal allocation(long goal, long days, long cycleDays) {
@@ -289,8 +280,8 @@ public class SpendingStore {
     public static long weekSpent(Context c) {
         ensureCurrentPeriod(c);
         LocalDate today = LocalDate.now();
-        long initial = currentWeekInitial(c, today);
-        return Math.max(0L, initial + sumBetween(c, currentWeekStart(today), currentWeekEnd(today)));
+        long correction = currentWeekInitial(c, today);
+        return Math.max(0L, correction + sumBetween(c, currentWeekStart(today), currentWeekEnd(today)));
     }
 
     public static long weeklyRemaining(Context c) {
@@ -306,7 +297,7 @@ public class SpendingStore {
         LocalDate fallback = LocalDate.now();
         LocalDate d = parseDate(p.getString(KEY_TODAY_BASE_DATE, fallback.toString()), fallback);
         if (d.isBefore(start) || d.isAfter(end)) return 0L;
-        return Math.max(0L, p.getLong(KEY_TODAY_BASE, 0L));
+        return p.getLong(KEY_TODAY_BASE, 0L);
     }
 
     public static long todaySpent(Context c) {
@@ -358,14 +349,21 @@ public class SpendingStore {
         }
     }
 
-    public static boolean recordTransaction(Context c, long amount, String kind, String body) {
+    public static synchronized boolean recordTransaction(Context c, long amount, String kind, String body) {
         ensureCurrentPeriod(c);
         long at = eventTime(body);
-        Matcher dt = DATE_TIME.matcher(body == null ? "" : body);
-        String dateTime = dt.find() ? dt.group(0) : Long.toString(at / 60000L);
-        String key = hash(amount + "|" + kind + "|" + dateTime);
+        String dateToken = CardMessageParser.dateTimeToken(body, at);
+        String legacyKey = hash(amount + "|" + kind + "|" + dateToken);
+        String key = "v6:" + hash(CardMessageParser.dedupMaterial(body, amount, kind, at));
+
         List<Entry> all = entries(c);
-        for (Entry e : all) if (e.key.equals(key)) return false;
+        for (Entry e : all) {
+            if (e.key.startsWith("v6:")) {
+                if (e.key.equals(key)) return false;
+            } else if (e.key.equals(legacyKey)) {
+                return false;
+            }
+        }
 
         long signed = kind != null && kind.contains("취소") ? -Math.abs(amount) : Math.abs(amount);
         all.add(new Entry(at, signed, key));
