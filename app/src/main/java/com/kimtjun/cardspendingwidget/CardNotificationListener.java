@@ -23,18 +23,23 @@ public class CardNotificationListener extends NotificationListenerService {
             if (extras == null) return;
 
             String body = collectBody(extras);
-            if (!CardMessageParser.looksLikeLotteNotification(body)) return;
+            String packageName = sbn.getPackageName() == null ? "" : sbn.getPackageName();
+            boolean samsungMessages = packageName.equals("com.samsung.android.messaging")
+                    || packageName.equals("com.google.android.apps.messaging");
+            boolean looksLikeLotte = CardMessageParser.looksLikeLotteNotification(body)
+                    || (samsungMessages && CardMessageParser.looksLikeCardApprovalBody(body));
+            if (!looksLikeLotte) return;
 
             CardMessageParser.Parsed parsed = CardMessageParser.parseLast(body);
             if (parsed == null) {
-                IngestionDiagnostics.recordNotification(this, sbn.getPackageName(), "롯데카드 관련 알림, 승인/취소 금액 인식 실패", null);
+                IngestionDiagnostics.recordNotification(this, packageName, "카드 관련 알림, 승인/취소 금액 인식 실패", null);
                 return;
             }
 
             boolean stored = SpendingStore.recordTransaction(this, parsed.amount, parsed.kind, body);
             IngestionDiagnostics.recordNotification(
                     this,
-                    sbn.getPackageName(),
+                    packageName,
                     stored ? "저장 성공" : "중복 거래로 무시",
                     parsed.amount);
             if (stored) SpendingWidgetProvider.updateAll(this);
