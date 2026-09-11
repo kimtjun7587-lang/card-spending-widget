@@ -36,32 +36,55 @@ final class CardMessageParser {
     }
 
     static Parsed parse(String body) {
+        return parseInternal(body, false);
+    }
+
+    static Parsed parseLast(String body) {
+        return parseInternal(body, true);
+    }
+
+    private static Parsed parseInternal(String body, boolean last) {
         if (body == null) return null;
         Matcher matcher = AMOUNT.matcher(body.replace(" ", ""));
-        if (!matcher.find()) return null;
-        try {
-            long amount = Long.parseLong(matcher.group(1).replace(",", ""));
-            if (amount <= 0L) return null;
-            return new Parsed(amount, matcher.group(2));
-        } catch (Exception ignored) {
-            return null;
+        Parsed result = null;
+        while (matcher.find()) {
+            try {
+                long amount = Long.parseLong(matcher.group(1).replace(",", ""));
+                if (amount <= 0L) continue;
+                result = new Parsed(amount, matcher.group(2));
+                if (!last) return result;
+            } catch (Exception ignored) {}
         }
+        return result;
     }
 
     static String dateTimeToken(String body, long fallbackMillis) {
         Matcher matcher = DATE_TIME.matcher(body == null ? "" : body);
-        return matcher.find() ? matcher.group(1) : Long.toString(fallbackMillis / 60000L);
+        String result = null;
+        while (matcher.find()) result = matcher.group(1);
+        return result != null ? result : Long.toString(fallbackMillis / 60000L);
     }
 
     static String dedupMaterial(String body, long amount, String kind, long fallbackMillis) {
-        String normalized = normalizedBody(body);
-        Matcher amountMatcher = AMOUNT.matcher(normalized.replace(" ", ""));
-        String window = normalized;
-        if (amountMatcher.find()) {
-            String compact = normalized.replace(" ", "");
-            int compactStart = amountMatcher.start();
-            int start = Math.max(0, compactStart - 48);
-            int end = Math.min(compact.length(), amountMatcher.end() + 120);
+        String compact = normalizedBody(body).replace(" ", "");
+        Matcher matcher = AMOUNT.matcher(compact);
+        int chosenStart = -1;
+        int chosenEnd = -1;
+        while (matcher.find()) {
+            try {
+                long foundAmount = Long.parseLong(matcher.group(1).replace(",", ""));
+                String foundKind = matcher.group(2);
+                if (foundAmount == amount && foundKind.equals(kind)) {
+                    chosenStart = matcher.start();
+                    chosenEnd = matcher.end();
+                }
+            } catch (Exception ignored) {}
+        }
+
+        String window = compact;
+        if (chosenStart >= 0) {
+            int start = Math.max(0, chosenStart - 48);
+            int end = Math.min(compact.length(), chosenEnd + 120);
             window = compact.substring(start, end);
         }
         return amount + "|" + kind + "|" + dateTimeToken(body, fallbackMillis) + "|" + window;
