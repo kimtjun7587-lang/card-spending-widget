@@ -65,6 +65,11 @@ public class MainActivity extends Activity {
         return NumberFormat.getNumberInstance(Locale.KOREA).format(v) + "원";
     }
 
+    private boolean notificationAccessEnabled() {
+        String enabled = Settings.Secure.getString(getContentResolver(), "enabled_notification_listeners");
+        return enabled != null && enabled.contains(getPackageName());
+    }
+
     private void refresh() {
         SpendingStore.ensureCurrentPeriod(this);
         LocalDate today = LocalDate.now();
@@ -94,6 +99,8 @@ public class MainActivity extends Activity {
 
         String smsPermission = checkSelfPermission(Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED
                 ? "SMS 권한: 허용" : "SMS 권한: 꺼짐";
-        diagnostics.setText(smsPermission + "\n" + IngestionDiagnostics.summary(this));
+        String notificationPermission = notificationAccessEnabled()
+                ? "알림 접근: 허용" : "알림 접근: 꺼짐";
+        diagnostics.setText(smsPermission + "\n" + notificationPermission + "\n" + IngestionDiagnostics.summary(this));
     }
 }
