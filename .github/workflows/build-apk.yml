@@ -2,7 +2,7 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ "main", "android-implementation", "final-locked-design" ]
+    branches: [ "main", "android-implementation", "final-locked-design", "audit-fix-v1.6" ]
   workflow_dispatch:
 
 jobs:
@@ -29,6 +29,9 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
+      - name: Run unit tests
+        run: gradle :app:testDebugUnitTest
+
       - name: Build installable debug APK
         run: gradle :app:assembleDebug
 
@@ -36,7 +39,7 @@ jobs:
         run: |
           mkdir -p install-package
           cp app/build/outputs/apk/debug/app-debug.apk install-package/card-spending-widget.apk
-          printf '설치: ZIP 압축을 풀고 card-spending-widget.apk를 Galaxy A16에서 누르세요.\n권한: SMS 수신 허용 + 필요 시 알림 접근 허용.\n설정: 목표금액, 현재 소비주기 초기 사용액, 필요 시 이번 주/오늘 초기 사용액을 입력하세요.\n기준: 카드 소비주기는 27일~다음 달 26일이며, 26일 마감 후 27일 새 주기로 리셋됩니다.\n위젯: 기존 홈 위젯을 제거하고 카드 소비 위젯 4×2를 새로 추가하세요.\n' > install-package/설치안내.txt
+          printf '설치: ZIP 압축을 풀고 card-spending-widget.apk를 Galaxy A16에서 누르세요.\n권한: SMS 수신 허용 + 알림 접근 권한을 켜세요.\n설정: 목표금액과 현재 소비주기/이번 주/오늘 사용액을 필요할 때 보정할 수 있습니다.\n기준: 카드 소비주기는 27일~다음 달 26일이며, 26일 마감 후 27일 새 주기로 리셋됩니다.\n위젯: 대표 위젯은 카드 소비 위젯 4×2 고정형입니다.\n진단: 앱 하단에서 마지막 SMS/알림 감지 결과를 확인할 수 있습니다.\n' > install-package/설치안내.txt
 
       - name: Upload install ZIP
         uses: actions/upload-artifact@v4
