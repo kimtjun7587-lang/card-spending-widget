@@ -41,17 +41,33 @@ final class CardMessageParser {
                 || body.contains("디지로카");
     }
 
+    static boolean looksLikeCardApprovalBody(String body) {
+        if (body == null) return false;
+        return AMOUNT.matcher(body.replace(" ", "")).find()
+                && (body.contains("누적") || body.contains("일시불") || body.contains("디지로카"));
+    }
+
     static Parsed parse(String body) {
+        return parseInternal(body, false);
+    }
+
+    static Parsed parseLast(String body) {
+        return parseInternal(body, true);
+    }
+
+    private static Parsed parseInternal(String body, boolean last) {
         if (body == null) return null;
         Matcher matcher = AMOUNT.matcher(body.replace(" ", ""));
+        Parsed result = null;
         while (matcher.find()) {
             try {
                 long amount = Long.parseLong(matcher.group(1).replace(",", ""));
                 if (amount <= 0L) continue;
-                return new Parsed(amount, matcher.group(2));
+                result = new Parsed(amount, matcher.group(2));
+                if (!last) return result;
             } catch (Exception ignored) {}
         }
-        return null;
+        return result;
     }
 
     static boolean hasExplicitDateTime(String body) {
@@ -127,13 +143,11 @@ final class CardMessageParser {
     }
 
     static String dedupMaterial(String body, long amount, String kind, long fallbackMillis) {
-        String cumulative = cumulativeToken(body);
-        String merchant = merchantToken(body, amount, kind);
         return amount + "|"
                 + kind + "|"
                 + dateTimeToken(body, fallbackMillis) + "|"
-                + cumulative + "|"
-                + merchant;
+                + cumulativeToken(body) + "|"
+                + merchantToken(body, amount, kind);
     }
 
     static String normalizedBody(String body) {
