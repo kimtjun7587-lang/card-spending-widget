@@ -1,9 +1,7 @@
 package com.kimtjun.cardspendingwidget;
 
-import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.widget.Button;
@@ -14,7 +12,6 @@ import java.time.LocalDate;
 import java.util.Locale;
 
 public class MainActivity extends Activity {
-    private static final int REQ_SMS = 1001;
     private TextView summary;
     private TextView diagnostics;
     private EditText goalInput;
@@ -44,10 +41,6 @@ public class MainActivity extends Activity {
             refresh();
         });
         access.setOnClickListener(v -> startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)));
-
-        if (checkSelfPermission(Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{Manifest.permission.RECEIVE_SMS}, REQ_SMS);
-        }
         refresh();
     }
 
@@ -97,10 +90,8 @@ public class MainActivity extends Activity {
         weekBaseInput.setText(String.valueOf(weekSpent));
         todayBaseInput.setText(String.valueOf(todaySpent));
 
-        String smsPermission = checkSelfPermission(Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED
-                ? "SMS 권한: 허용" : "SMS 권한: 꺼짐";
         String notificationPermission = notificationAccessEnabled()
                 ? "알림 접근: 허용" : "알림 접근: 꺼짐";
-        diagnostics.setText(smsPermission + "\n" + notificationPermission + "\n" + IngestionDiagnostics.summary(this));
+        diagnostics.setText(notificationPermission + "\n" + IngestionDiagnostics.summary(this));
     }
 }

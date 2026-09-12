@@ -1,12 +1,17 @@
 package com.kimtjun.cardspendingwidget;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 final class CardMessageParser {
     private static final Pattern AMOUNT = Pattern.compile("([0-9,]+)원\\s*(승인취소|취소|승인)");
-    private static final Pattern DATE_TIME = Pattern.compile("(\\d{2}/\\d{2}\\s+\\d{2}:\\d{2})");
+    private static final Pattern DATE_TIME = Pattern.compile("(\\d{2})/(\\d{2})\\s+(\\d{2}):(\\d{2})");
     private static final Pattern CUMULATIVE = Pattern.compile("누적\\s*([0-9,]+)원");
+    private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("MM/dd HH:mm");
 
     static final class Parsed {
         final long amount;
@@ -36,6 +41,12 @@ final class CardMessageParser {
                 || body.contains("디지로카");
     }
 
+    static boolean looksLikeCardApprovalBody(String body) {
+        if (body == null) return false;
+        return AMOUNT.matcher(body.replace(" ", "")).find()
+                && (body.contains("누적") || body.contains("일시불") || body.contains("디지로카"));
+    }
+
     static Parsed parse(String body) {
         return parseInternal(body, false);
     }
@@ -59,11 +70,43 @@ final class CardMessageParser {
         return result;
     }
 
-    static String dateTimeToken(String body, long fallbackMillis) {
+    static boolean hasExplicitDateTime(String body) {
+        return DATE_TIME.matcher(body == null ? "" : body).find();
+    }
+
+    static long eventTimeMillis(String body, long fallbackMillis) {
         Matcher matcher = DATE_TIME.matcher(body == null ? "" : body);
-        String result = null;
-        while (matcher.find()) result = matcher.group(1);
-        return result != null ? result : Long.toString(fallbackMillis / 60000L);
+        String month = null, day = null, hour = null, minute = null;
+        while (matcher.find()) {
+            month = matcher.group(1);
+            day = matcher.group(2);
+            hour = matcher.group(3);
+            minute = matcher.group(4);
+        }
+        if (month == null) return fallbackMillis;
+
+        try {
+            ZoneId zone = ZoneId.systemDefault();
+            LocalDateTime fallback = Instant.ofEpochMilli(fallbackMillis).atZone(zone).toLocalDateTime();
+            LocalDateTime candidate = LocalDateTime.of(
+                    fallback.getYear(),
+                    Integer.parseInt(month),
+                    Integer.parseInt(day),
+                    Integer.parseInt(hour),
+                    Integer.parseInt(minute));
+            if (candidate.isAfter(fallback.plusDays(2))) candidate = candidate.minusYears(1);
+            return candidate.atZone(zone).toInstant().toEpochMilli();
+        } catch (Exception ignored) {
+            return fallbackMillis;
+        }
+    }
+
+    static String dateTimeToken(String body, long fallbackMillis) {
+        long eventAt = eventTimeMillis(body, fallbackMillis);
+        return Instant.ofEpochMilli(eventAt)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDateTime()
+                .format(DATE_TIME_FORMAT);
     }
 
     private static String cumulativeToken(String body) {
@@ -77,22 +120,19 @@ final class CardMessageParser {
         if (body == null) return "";
         String[] lines = body.split("\\r?\\n");
         String previous = "";
-        String chosen = "";
         for (String line : lines) {
             String trimmed = line == null ? "" : line.trim();
             if (trimmed.isEmpty()) continue;
             Matcher matcher = AMOUNT.matcher(trimmed.replace(" ", ""));
-            boolean matchedTarget = false;
             while (matcher.find()) {
                 try {
                     long found = Long.parseLong(matcher.group(1).replace(",", ""));
-                    if (found == amount && matcher.group(2).equals(kind)) matchedTarget = true;
+                    if (found == amount && matcher.group(2).equals(kind)) return sanitizeMerchant(previous);
                 } catch (Exception ignored) {}
             }
-            if (matchedTarget && !previous.isEmpty()) chosen = sanitizeMerchant(previous);
             previous = trimmed;
         }
-        return chosen;
+        return "";
     }
 
     private static String sanitizeMerchant(String value) {
