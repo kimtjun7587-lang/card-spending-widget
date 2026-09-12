@@ -47,6 +47,6 @@
             android:textColor="#C9D7EA"
             android:textSize="12sp" />
 
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="1588-8100 승인/취소 문자를 자동 반영합니다. 카드번호 전체, CVC, 비밀번호, OTP는 사용하거나 저장하지 않습니다." android:textColor="#9FB0C6" android:textSize="13sp" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="삼성 메시지/Google 메시지의 롯데카드 승인·취소 알림을 자동 반영합니다. SMS 제한 권한은 요청하지 않습니다. 카드번호 전체, CVC, 비밀번호, OTP는 사용하거나 저장하지 않습니다." android:textColor="#9FB0C6" android:textSize="13sp" />
     </LinearLayout>
 </ScrollView>
