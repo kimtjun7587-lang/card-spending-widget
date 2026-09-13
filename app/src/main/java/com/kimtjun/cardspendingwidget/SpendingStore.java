@@ -255,20 +255,40 @@ public class SpendingStore {
                 .divide(BigDecimal.valueOf(cycleDays), 12, RoundingMode.HALF_UP);
     }
 
+    static long weeklyPlanFor(LocalDate today, long goal, long total, long spent, long todayAvailable) {
+        long safeGoal = Math.max(0L, goal);
+        long safeTotal = Math.max(0L, total);
+        long safeSpent = Math.max(0L, spent);
+        long safeTodayAvailable = Math.max(0L, todayAvailable);
+        long remaining = safeTotal >= safeGoal ? 0L : safeGoal - safeTotal;
+        if (remaining <= 0L) return safeSpent;
+
+        LocalDate ws = currentWeekStart(today);
+        LocalDate we = currentWeekEnd(today);
+        LocalDate ce = periodEnd(today);
+        long weekDays = Math.max(1L, ChronoUnit.DAYS.between(ws, we) + 1L);
+        long cycleDaysFromWeekStart = Math.max(1L, ChronoUnit.DAYS.between(ws, ce) + 1L);
+
+        BigDecimal weekStartRemaining = BigDecimal.valueOf(remaining).add(BigDecimal.valueOf(safeSpent));
+        if (safeGoal > 0L) {
+            weekStartRemaining = weekStartRemaining.min(BigDecimal.valueOf(safeGoal));
+        }
+
+        BigDecimal weekStartPlan = weekStartRemaining
+                .multiply(BigDecimal.valueOf(weekDays))
+                .divide(BigDecimal.valueOf(cycleDaysFromWeekStart), 0, RoundingMode.FLOOR);
+        BigDecimal minimumPlanToday = BigDecimal.valueOf(safeSpent)
+                .add(BigDecimal.valueOf(safeTodayAvailable));
+        BigDecimal plan = weekStartPlan.max(minimumPlanToday);
+        if (plan.compareTo(BigDecimal.valueOf(Long.MAX_VALUE)) > 0) return Long.MAX_VALUE;
+        return plan.longValue();
+    }
+
     private static BigDecimal weeklyNeedExact(Context c) {
         ensureCurrentPeriod(c);
         LocalDate today = LocalDate.now();
-        long remaining = Math.max(0L, goal(c) - total(c));
-        long spent = weekSpent(c);
-        if (remaining <= 0L) return BigDecimal.valueOf(spent);
-
-        LocalDate ce = periodEnd(today);
-        LocalDate we = currentWeekEnd(today);
-        long remainingCycleDays = Math.max(1L, ChronoUnit.DAYS.between(today, ce) + 1L);
-        long remainingWeekDays = Math.max(1L, ChronoUnit.DAYS.between(today, we) + 1L);
-
-        BigDecimal futureWeekAllowance = allocation(remaining, remainingWeekDays, remainingCycleDays);
-        return BigDecimal.valueOf(spent).add(futureWeekAllowance);
+        long plan = weeklyPlanFor(today, goal(c), total(c), weekSpent(c), todayAvailable(c));
+        return BigDecimal.valueOf(plan);
     }
 
     public static long weeklyPlan(Context c) {
@@ -285,7 +305,13 @@ public class SpendingStore {
     }
 
     public static long weeklyRemaining(Context c) {
-        return Math.max(0L, weeklyPlan(c) - weekSpent(c));
+        long plan = weeklyPlan(c);
+        long spent = weekSpent(c);
+        long total = total(c);
+        long goal = goal(c);
+        long cycleRemaining = total >= goal ? 0L : goal - total;
+        long weekRemaining = Math.max(0L, plan - spent);
+        return Math.min(cycleRemaining, weekRemaining);
     }
 
     public static boolean weeklyOver(Context c) {
