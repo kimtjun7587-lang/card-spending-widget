@@ -71,7 +71,7 @@ public class MainActivity extends Activity {
         long weekSpent = SpendingStore.weekSpent(this);
         long todaySpent = SpendingStore.todaySpent(this);
         long remain = Math.max(0L, goal - total);
-        String weeklyLeft = SpendingStore.weeklyOver(this) ? "0원 (이번 주 예산 초과)" : won(SpendingStore.weeklyRemaining(this));
+        String weeklyLeft = SpendingStore.weeklyOver(this) ? "0원 (이번 주 기준 초과)" : won(SpendingStore.weeklyRemaining(this));
 
         summary.setText(
                 SpendingStore.periodMonthLabel(today) + "   " + SpendingStore.periodRangeLabel(today) + "\n\n" +
@@ -79,9 +79,9 @@ public class MainActivity extends Activity {
                 "목표 금액  " + won(goal) + "\n" +
                 "남은 금액  " + won(remain) + "\n" +
                 "사용률  " + SpendingStore.usagePercent(this) + "%\n\n" +
-                "이번 주 필요 소비 금액  " + won(SpendingStore.weeklyPlan(this)) + "\n" +
-                "이번 주 남은 소비 금액  " + weeklyLeft + "\n" +
-                "오늘 사용 가능 소비 금액  " + won(SpendingStore.todayAvailable(this)) + "\n" +
+                "이번 주 소비 가능 총액  " + won(SpendingStore.weeklyPlan(this)) + "\n" +
+                "이번 주 남은 사용 가능액  " + weeklyLeft + "\n" +
+                "오늘 남은 사용 가능액  " + won(SpendingStore.todayAvailable(this)) + "\n" +
                 "오늘 소비한 금액  " + won(todaySpent) + "\n" +
                 "마감일 26일 | " + SpendingStore.daysUntilClose(today) + "일 남음");
 

@@ -39,15 +39,15 @@
     <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical">
         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.7" android:orientation="vertical">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
-                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="이번 주 필요 소비 금액" android:textColor="#E3EAF3" android:textSize="9sp" />
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="이번 주 소비 가능 총액" android:textColor="#E3EAF3" android:textSize="9sp" />
                 <TextView android:id="@+id/w_week_plan" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FF8294" android:textSize="11sp" android:textStyle="bold" />
             </LinearLayout>
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:orientation="horizontal" android:gravity="center_vertical">
-                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="이번 주 남은 소비 금액" android:textColor="#E3EAF3" android:textSize="9sp" />
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="이번 주 남은 사용 가능액" android:textColor="#E3EAF3" android:textSize="9sp" />
                 <TextView android:id="@+id/w_week_left" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:textSize="11sp" android:textStyle="bold" />
             </LinearLayout>
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:orientation="horizontal" android:gravity="center_vertical">
-                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="오늘 사용 가능 소비 금액" android:textColor="#E3EAF3" android:textSize="9sp" />
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="오늘 남은 사용 가능액" android:textColor="#E3EAF3" android:textSize="9sp" />
                 <TextView android:id="@+id/w_today_available" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:textSize="11sp" android:textStyle="bold" />
             </LinearLayout>
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:orientation="horizontal" android:gravity="center_vertical">

@@ -52,7 +52,7 @@ public class SpendingWidgetProvider extends AppWidgetProvider {
 
         rv.setTextViewText(R.id.w_month, SpendingStore.periodMonthLabel(today));
         rv.setTextViewText(R.id.w_amount, won(total));
-        rv.setTextViewText(R.id.w_week_left, SpendingStore.weeklyOver(context) ? "0원 · 초과" : won(weekLeft));
+        rv.setTextViewText(R.id.w_week_left, SpendingStore.weeklyOver(context) ? "0원 · 기준 초과" : won(weekLeft));
         rv.setTextViewText(R.id.w_day, "마감일 26일  |  " + daysLeft + "일 남음");
 
         if (layoutId == R.layout.widget_spending) {
