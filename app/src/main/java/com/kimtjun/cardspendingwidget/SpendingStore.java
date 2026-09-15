@@ -255,26 +255,27 @@ public class SpendingStore {
                 .divide(BigDecimal.valueOf(cycleDays), 12, RoundingMode.HALF_UP);
     }
 
-    private static BigDecimal weeklyNeedExact(Context c) {
-        ensureCurrentPeriod(c);
-        LocalDate today = LocalDate.now();
-        long remaining = Math.max(0L, goal(c) - total(c));
-        long spent = weekSpent(c);
-        if (remaining <= 0L) return BigDecimal.valueOf(spent);
-
-        LocalDate ce = periodEnd(today);
-        LocalDate we = currentWeekEnd(today);
-        long remainingCycleDays = Math.max(1L, ChronoUnit.DAYS.between(today, ce) + 1L);
-        long remainingWeekDays = Math.max(1L, ChronoUnit.DAYS.between(today, we) + 1L);
-
-        BigDecimal futureWeekAllowance = allocation(remaining, remainingWeekDays, remainingCycleDays);
-        return BigDecimal.valueOf(spent).add(futureWeekAllowance);
+    static long weeklyPlanFromStart(long goal, long spentBeforeWeek, long weekDays, long remainingCycleDays) {
+        long startRemaining = Math.max(0L, goal - Math.max(0L, spentBeforeWeek));
+        if (startRemaining <= 0L || weekDays <= 0L || remainingCycleDays <= 0L) return 0L;
+        return allocation(startRemaining, weekDays, remainingCycleDays)
+                .setScale(0, RoundingMode.FLOOR)
+                .longValue();
     }
 
     public static long weeklyPlan(Context c) {
-        BigDecimal exact = weeklyNeedExact(c);
-        if (exact.signum() <= 0) return 0L;
-        return exact.setScale(0, RoundingMode.FLOOR).longValue();
+        ensureCurrentPeriod(c);
+        LocalDate today = LocalDate.now();
+        long spent = weekSpent(c);
+        long spentBeforeWeek = Math.max(0L, total(c) - spent);
+
+        LocalDate ws = currentWeekStart(today);
+        LocalDate we = currentWeekEnd(today);
+        LocalDate ce = periodEnd(today);
+        long weekDays = Math.max(1L, ChronoUnit.DAYS.between(ws, we) + 1L);
+        long remainingCycleDays = Math.max(1L, ChronoUnit.DAYS.between(ws, ce) + 1L);
+
+        return weeklyPlanFromStart(goal(c), spentBeforeWeek, weekDays, remainingCycleDays);
     }
 
     public static long weekSpent(Context c) {
